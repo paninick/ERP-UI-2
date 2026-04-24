@@ -17,7 +17,9 @@ interface ProcessStep {
   isOutsource: string;
 }
 
-const STATUS_ICON_MAP: Record<string, any> = {
+import type { ComponentType } from 'react';
+
+const STATUS_ICON_MAP: Record<string, ComponentType<{ size?: number; className?: string }>> = {
   PENDING: Circle,
   RUNNING: Clock,
   WAIT_CHECK: AlertTriangle,

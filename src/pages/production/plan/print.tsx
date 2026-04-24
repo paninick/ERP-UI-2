@@ -7,11 +7,21 @@ import PrintCodeStrip from '@/components/business/PrintCodeStrip';
 import { useDictOptions } from '@/hooks/useDictOptions';
 import { buildProducePlanPrintLink } from '@/utils/businessLinks';
 
+interface ProducePlanRecord {
+  planNo?: string;
+  salesNo?: string;
+  styleCode?: string;
+  planQty?: number;
+  planDate?: string;
+  status?: string;
+  remark?: string;
+}
+
 export default function ProducePlanPrintPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [record, setRecord] = useState<any>(null);
+  const [record, setRecord] = useState<ProducePlanRecord | null>(null);
 
   const planStatus = useDictOptions('erp_plan_status', [
     { value: '0', label: '待排产' },

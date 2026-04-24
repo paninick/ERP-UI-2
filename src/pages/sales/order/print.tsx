@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import * as salesApi from '@/api/sales';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import PrintCodeStrip from '@/components/business/PrintCodeStrip';
@@ -21,11 +22,29 @@ function calcSubtotal(row: BulkRow) {
   return ['xs', 's', 'm', 'l'].reduce((sum, key) => sum + (Number(row[key as keyof BulkRow]) || 0), 0);
 }
 
+interface SalesOrderRecord {
+  salesNo?: string;
+  customerName?: string;
+  bulkOrderNo?: string;
+  styleCode?: string;
+  orderDate?: string;
+  deliveryDate?: string;
+  quantity?: number;
+  amount?: number;
+  orderStatus?: string;
+  remark?: string;
+  detailDraft?: {
+    baseInfo?: Record<string, string>;
+    bulkRows?: BulkRow[];
+  };
+}
+
 export default function SalesOrderPrintPage() {
+  const { t } = useTranslation();
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [record, setRecord] = useState<any>(null);
+  const [record, setRecord] = useState<SalesOrderRecord | null>(null);
 
   const orderStatus = useDictOptions('sales_order_status');
 
@@ -53,7 +72,6 @@ export default function SalesOrderPrintPage() {
   }, [id]);
 
   const statusTag = useMemo(() => orderStatus.toTag(record?.orderStatus), [orderStatus, record?.orderStatus]);
-
   const detailDraft = record?.detailDraft || {};
   const baseInfo = detailDraft.baseInfo || {};
   const bulkRows: BulkRow[] = detailDraft.bulkRows || [];
@@ -64,11 +82,11 @@ export default function SalesOrderPrintPage() {
   const printLink = useMemo(() => buildSalesOrderPrintLink(id), [id]);
 
   if (loading) {
-    return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">加载中...</div>;
+    return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">{t('page.salesPrint.loading')}</div>;
   }
 
   if (!record) {
-    return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">未找到销售订单数据</div>;
+    return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">{t('page.salesPrint.notFound')}</div>;
   }
 
   return (
@@ -79,13 +97,13 @@ export default function SalesOrderPrintPage() {
             type="button"
             onClick={() => navigate('/sales/order')}
             className="rounded-xl p-2 text-slate-600 hover:bg-slate-100"
-            aria-label="返回销售订单"
+            aria-label={t('page.salesPrint.backAriaLabel')}
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">销售确认单</h2>
-            <p className="text-sm text-slate-500">销售打印以销售单号为主，打印款号与客户款号作为识别辅助。</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t('page.salesPrint.title')}</h2>
+            <p className="text-sm text-slate-500">{t('page.salesPrint.subtitle')}</p>
           </div>
         </div>
         <button
@@ -94,77 +112,77 @@ export default function SalesOrderPrintPage() {
           className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
         >
           <Printer size={14} />
-          打印
+          {t('common.print')}
         </button>
       </div>
 
       <section className="rounded-3xl bg-white p-6 shadow-sm print:shadow-none">
         <div className="mb-6 flex items-end justify-between border-b border-slate-200 pb-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">销售确认单</h1>
-            <p className="mt-1 text-sm text-slate-500">客户确认、业务跟单、打样和大货对照统一使用。</p>
+            <h1 className="text-2xl font-bold text-slate-900">{t('page.salesPrint.heading')}</h1>
+            <p className="mt-1 text-sm text-slate-500">{t('page.salesPrint.headingHint')}</p>
           </div>
           <div className={`rounded-full px-3 py-1 text-sm font-medium ${statusTag.color}`}>{statusTag.label}</div>
         </div>
 
         <DocumentCodeBoard
-          title="单号层级"
-          description="销售单号是业务主号，打印款号和客户款号用于外发识别，但不替代销售主号。"
+          title={t('page.salesPrint.hierarchyTitle')}
+          description={t('page.salesPrint.hierarchyDescription')}
           items={[
             {
-              label: '销售主号',
+              label: t('page.salesPrint.hierarchyItems.salesPrimary'),
               value: record.salesNo,
-              helper: '业务、计划、财务统一追踪主号。',
+              helper: t('page.salesPrint.hierarchyItems.salesPrimaryHelper'),
               tone: 'primary',
             },
             {
-              label: '打印款号',
+              label: t('page.salesPrint.hierarchyItems.bulkOrderNo'),
               value: record.bulkOrderNo || baseInfo.bulkOrderNo,
-              helper: '客户确认、包装资料、图纸资料优先展示。',
+              helper: t('page.salesPrint.hierarchyItems.bulkOrderNoHelper'),
               tone: 'secondary',
             },
             {
-              label: '客户/打样款号',
+              label: t('page.salesPrint.hierarchyItems.customerPattern'),
               value: baseInfo.patternNo || record.styleCode,
-              helper: '用于对照客款，不替代销售单号。',
+              helper: t('page.salesPrint.hierarchyItems.customerPatternHelper'),
             },
             {
-              label: '总数量',
+              label: t('page.salesPrint.hierarchyItems.totalQty'),
               value: totalQty || '-',
-              helper: '后续计划和工单应从这里继承或拆分。',
+              helper: t('page.salesPrint.hierarchyItems.totalQtyHelper'),
             },
           ]}
         />
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <PrintCodeStrip
-            label="业务扫码入口"
+            label={t('page.salesPrint.scanEntry')}
             value={`SO|${record.salesNo || '-'}|STYLE|${record.bulkOrderNo || record.styleCode || '-'}|QTY|${totalQty || '-'}`}
             qrValue={detailLink}
-            note="扫码后直接打开销售订单详情页，减少人工搜索单号。"
+            note={t('page.salesPrint.scanEntryNote')}
           />
           <PrintCodeStrip
-            label="打印归档入口"
+            label={t('page.salesPrint.archiveEntry')}
             value={`PRINT|${record.bulkOrderNo || record.styleCode || '-'}|CUSTOMER|${record.customerName || '-'}|DATE|${record.deliveryDate || '-'}`}
             qrValue={printLink}
-            note="适合贴在销售确认单或外发资料首页，扫码回到打印页。"
+            note={t('page.salesPrint.archiveEntryNote')}
           />
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
-            ['销售单号', record.salesNo],
-            ['客户名称', record.customerName],
-            ['打印款号', record.bulkOrderNo || baseInfo.bulkOrderNo || '-'],
-            ['款号', record.styleCode || baseInfo.productName || '-'],
-            ['销售日期', record.orderDate],
-            ['交货日期', record.deliveryDate],
-            ['总数量', totalQty || '-'],
-            ['订单状态', statusTag.label],
-            ['货值', record.amount || '-'],
-            ['备注', record.remark || baseInfo.remark || '-'],
+            [t('page.salesPrint.cards.salesNo'), record.salesNo],
+            [t('page.salesPrint.cards.customerName'), record.customerName],
+            [t('page.salesPrint.cards.bulkOrderNo'), record.bulkOrderNo || baseInfo.bulkOrderNo || '-'],
+            [t('page.salesPrint.cards.styleCode'), record.styleCode || baseInfo.productName || '-'],
+            [t('page.salesPrint.cards.orderDate'), record.orderDate],
+            [t('page.salesPrint.cards.deliveryDate'), record.deliveryDate],
+            [t('page.salesPrint.cards.totalQty'), totalQty || '-'],
+            [t('page.salesPrint.cards.orderStatus'), statusTag.label],
+            [t('page.salesPrint.cards.amount'), record.amount || '-'],
+            [t('page.salesPrint.cards.remark'), record.remark || baseInfo.remark || '-'],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-2xl border border-slate-200 p-4">
+            <div key={String(label)} className="rounded-2xl border border-slate-200 p-4">
               <div className="text-xs text-slate-500">{label}</div>
               <div className="mt-2 text-sm font-medium text-slate-900">{value || '-'}</div>
             </div>
@@ -173,14 +191,22 @@ export default function SalesOrderPrintPage() {
 
         <section className="mt-6">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">颜色 / 尺码分配</h3>
-            <span className="text-xs text-slate-500">打印时保留颜色与尺码分布，避免后续部门重复录入。</span>
+            <h3 className="text-sm font-semibold text-slate-900">{t('page.salesPrint.distributionTitle')}</h3>
+            <span className="text-xs text-slate-500">{t('page.salesPrint.distributionHint')}</span>
           </div>
           <div className="overflow-hidden rounded-2xl border border-slate-200">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 text-left text-slate-500">
-                  {['打印款号', '颜色', 'XS', 'S', 'M', 'L', '小计'].map((header) => (
+                  {[
+                    t('page.salesPrint.table.bulkOrderNo'),
+                    t('page.salesPrint.table.colorName'),
+                    'XS',
+                    'S',
+                    'M',
+                    'L',
+                    t('page.salesPrint.table.subtotal'),
+                  ].map((header) => (
                     <th key={header} className="px-3 py-3">{header}</th>
                   ))}
                 </tr>
@@ -188,7 +214,7 @@ export default function SalesOrderPrintPage() {
               <tbody>
                 {bulkRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-3 py-10 text-center text-slate-400">暂无颜色尺码明细</td>
+                    <td colSpan={7} className="px-3 py-10 text-center text-slate-400">{t('page.salesPrint.noDistribution')}</td>
                   </tr>
                 ) : (
                   bulkRows.map((row) => (

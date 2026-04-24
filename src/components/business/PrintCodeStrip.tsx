@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { useTranslation } from 'react-i18next';
 
 interface PrintCodeStripProps {
   label: string;
@@ -9,6 +10,7 @@ interface PrintCodeStripProps {
 }
 
 export default function PrintCodeStrip({ label, value, qrValue, note }: PrintCodeStripProps) {
+  const { t } = useTranslation();
   const [dataUrl, setDataUrl] = useState('');
   const encodedValue = qrValue || value;
 
@@ -56,7 +58,7 @@ export default function PrintCodeStrip({ label, value, qrValue, note }: PrintCod
           {dataUrl ? (
             <img src={dataUrl} alt={`${label} QR`} className="h-24 w-24" />
           ) : (
-            <span className="text-xs text-slate-400">QR loading</span>
+            <span className="text-xs text-slate-400">{t('print.qrLoading')}</span>
           )}
         </div>
         <div className="min-w-0 flex-1">

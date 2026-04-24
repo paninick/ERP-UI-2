@@ -11,6 +11,31 @@ import { toast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useDictOptions } from '@/hooks/useDictOptions';
 
+interface JobProcessRecord {
+  id: number;
+  jobId?: number;
+  jobNo?: string;
+  processId?: number;
+  processName?: string;
+  processSeq?: number;
+  processStatus?: string;
+  employeeName?: string;
+  inQty?: number;
+  outQty?: number;
+  defectQty?: number;
+  lossQty?: number;
+  lossExceed?: string;
+  rejectReason?: string;
+}
+
+interface DefectRecord {
+  defectCategory?: string;
+  defectLevel?: string;
+  defectQty?: number;
+  isBrokenNeedle?: string;
+  remark?: string;
+}
+
 export default function QualityInspectionPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -22,15 +47,15 @@ export default function QualityInspectionPage() {
   const defectCategory = useDictOptions('erp_defect_category');
   const defectLevel = useDictOptions('erp_defect_level');
 
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<JobProcessRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageNum: 1, pageSize: 20, total: 0 });
   const [queryParams, setQueryParams] = useState({
     processStatus: recordId ? '' : 'WAIT_CHECK',
     jobNo: initialJobNo,
   });
-  const [selectedRecord, setSelectedRecord] = useState<any>(null);
-  const [defects, setDefects] = useState<any[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<JobProcessRecord | null>(null);
+  const [defects, setDefects] = useState<DefectRecord[]>([]);
   const [rejectReason, setRejectReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [autoOpenedRecordId, setAutoOpenedRecordId] = useState('');
@@ -82,15 +107,15 @@ export default function QualityInspectionPage() {
     fetchData({ pageNum, pageSize });
   };
 
-  const handleViewDetail = useCallback(async (record: any) => {
+  const handleViewDetail = useCallback(async (record: JobProcessRecord) => {
     setSelectedRecord(record);
     setRejectReason('');
     try {
-      const response: any = await defectApi.listDefect({
+      const response = await defectApi.listDefect({
         jobId: record.jobId,
         processId: record.processId,
       });
-      setDefects(response.rows || []);
+      setDefects((response as any).rows || []);
     } catch {
       setDefects([]);
     }
@@ -111,8 +136,8 @@ export default function QualityInspectionPage() {
     let mounted = true;
 
     async function loadRecord() {
-      const detail: any = await jobProcessApi.getProduceJobProcess(Number(recordId)).catch(() => null);
-      const nextRecord = detail?.data || detail || null;
+      const detail = await jobProcessApi.getProduceJobProcess(Number(recordId)).catch(() => null);
+      const nextRecord: JobProcessRecord | null = (detail as any)?.data || detail || null;
       if (!mounted || !nextRecord) {
         return;
       }
@@ -188,7 +213,7 @@ export default function QualityInspectionPage() {
       key: 'actions',
       title: t('page.qualityInspection.table.actions'),
       width: '180px',
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: JobProcessRecord) => (
         <div className="flex gap-1">
           <NavLink
             to={`/quality/inspection/print/${record.id}`}

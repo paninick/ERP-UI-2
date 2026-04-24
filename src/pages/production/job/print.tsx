@@ -21,11 +21,23 @@ interface ProcessStep {
   isOutsource?: string;
 }
 
+interface ProduceJobRecord {
+  jobNo?: string;
+  planNo?: string;
+  salesNo?: string;
+  styleCode?: string;
+  colorCode?: string;
+  sizeCode?: string;
+  planQty?: number;
+  status?: string;
+  remark?: string;
+}
+
 export default function ProduceJobPrintPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [record, setRecord] = useState<any>(null);
+  const [record, setRecord] = useState<ProduceJobRecord | null>(null);
   const [steps, setSteps] = useState<ProcessStep[]>([]);
 
   const planStatus = useDictOptions('erp_plan_status', [

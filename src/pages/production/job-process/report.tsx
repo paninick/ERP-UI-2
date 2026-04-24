@@ -44,7 +44,31 @@ function toNumber(value: string) {
   return Number(value) || 0;
 }
 
-function isReportableProcess(process: any) {
+interface ProduceJob {
+  jobNo?: string;
+  styleCode?: string;
+  colorCode?: string;
+  sizeCode?: string;
+  planQty?: number;
+}
+
+interface ProcessStep {
+  id: number;
+  processId: number;
+  processSeq: number;
+  processName?: string;
+  processStatus?: string;
+  isOutsource?: string;
+  outQty?: number;
+}
+
+interface EmployeeOption {
+  id: number;
+  employeeName: string;
+  department?: string;
+}
+
+function isReportableProcess(process: ProcessStep) {
   return process?.processStatus === 'PENDING' || process?.processStatus === 'RUNNING';
 }
 
@@ -55,15 +79,15 @@ export default function ProcessReportPage() {
   const [searchParams] = useSearchParams();
   const targetProcessId = searchParams.get('processId');
 
-  const [job, setJob] = useState<any>(null);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [currentProcess, setCurrentProcess] = useState<any>(null);
+  const [job, setJob] = useState<ProduceJob | null>(null);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [currentProcess, setCurrentProcess] = useState<ProcessStep | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showDefectForm, setShowDefectForm] = useState(false);
   const [form, setForm] = useState<ReportFormState>(EMPTY_FORM);
   const [defects, setDefects] = useState<DefectItem[]>([]);
-  const [processes, setProcesses] = useState<any[]>([]);
+  const [processes, setProcesses] = useState<ProcessStep[]>([]);
 
   const inQtyNum = useMemo(() => toNumber(form.inQty), [form.inQty]);
   const outQtyNum = useMemo(() => toNumber(form.outQty), [form.outQty]);
@@ -138,21 +162,21 @@ export default function ProcessReportPage() {
         setJob(jobRes?.data || jobRes || null);
         setEmployees(employeeRes?.rows || []);
 
-        const rows = processRes?.rows || processRes || [];
-        const sorted = [...rows].sort((a: any, b: any) => a.processSeq - b.processSeq);
+        const rows: ProcessStep[] = processRes?.rows || processRes || [];
+        const sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
         setProcesses(sorted);
 
         const scannedProcess = targetProcessId
-          ? sorted.find((item: any) => String(item.id) === targetProcessId)
+          ? sorted.find((item) => String(item.id) === targetProcessId)
           : null;
         const nextProcess = (scannedProcess && isReportableProcess(scannedProcess))
           ? scannedProcess
-          : sorted.find((item: any) => isReportableProcess(item)) || null;
+          : sorted.find((item) => isReportableProcess(item)) || null;
 
         setCurrentProcess(nextProcess);
 
         if (nextProcess) {
-          const currentIndex = sorted.findIndex((item: any) => item.id === nextProcess.id);
+          const currentIndex = sorted.findIndex((item) => item.id === nextProcess.id);
           const previousProcess = currentIndex > 0 ? sorted[currentIndex - 1] : null;
           setForm((prev) => ({
             ...EMPTY_FORM,
@@ -171,11 +195,11 @@ export default function ProcessReportPage() {
 
   const reloadProcessState = async (nextInQty?: number) => {
     const numericJobId = Number(jobId);
-    const processRes: any = await jobProcessApi.listByJob(numericJobId);
-    const rows = processRes?.rows || processRes || [];
-    const sorted = [...rows].sort((a: any, b: any) => a.processSeq - b.processSeq);
+    const processRes = await jobProcessApi.listByJob(numericJobId);
+    const rows: ProcessStep[] = (processRes as any)?.rows || processRes || [];
+    const sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
     setProcesses(sorted);
-    const nextProcess = sorted.find((item: any) => isReportableProcess(item)) || null;
+    const nextProcess = sorted.find((item) => isReportableProcess(item)) || null;
     setCurrentProcess(nextProcess);
     setDefects([]);
     setForm({

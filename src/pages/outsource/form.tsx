@@ -2,16 +2,30 @@ import { useEffect, useState } from 'react';
 import * as supplierApi from '@/api/supplier';
 import { useDictOptions } from '@/hooks/useDictOptions';
 
+interface SupplierOption {
+  id: number;
+  supplierName: string;
+}
+
+interface FieldProps {
+  name: string;
+  label: string;
+  required?: boolean;
+  type?: string;
+  options?: { value: string; label: string }[];
+  children?: React.ReactNode;
+}
+
 interface OutsourceFormProps {
-  initialValues?: any;
-  onSubmit: (values: any) => void;
+  initialValues?: Record<string, unknown>;
+  onSubmit: (values: Record<string, unknown>) => void;
   onCancel: () => void;
 }
 
 export default function OutsourceForm({ initialValues, onSubmit, onCancel }: OutsourceFormProps) {
-  const [form, setForm] = useState<Record<string, any>>({});
+  const [form, setForm] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
 
   const processStatus = useDictOptions('erp_process_status', [
     { value: '0', label: '待确认' },
@@ -60,7 +74,7 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
     }
   };
 
-  const Field = ({ name, label, required, type = 'text', options, children }: any) => (
+  const Field = ({ name, label, required, type = 'text', options, children }: FieldProps) => (
     <div className="flex items-center gap-3">
       <label className="w-28 shrink-0 text-right text-sm text-slate-600">
         {required && <span className="mr-1 text-red-500">*</span>}
@@ -75,7 +89,7 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
             className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           >
             <option value="">请选择</option>
-            {options?.map((option: any) => (
+            {options?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
