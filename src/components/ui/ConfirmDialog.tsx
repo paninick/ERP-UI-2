@@ -1,0 +1,92 @@
+import { create } from 'zustand';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
+
+interface ConfirmStore {
+  open: boolean;
+  message: string;
+  title: string;
+  resolve: ((value: boolean) => void) | null;
+  _show: (message: string, title: string) => Promise<boolean>;
+  _answer: (value: boolean) => void;
+}
+
+const useConfirmStore = create<ConfirmStore>((set, get) => ({
+  open: false,
+  message: '',
+  title: '确认操作',
+  resolve: null,
+
+  _show: (message, title) =>
+    new Promise<boolean>((resolve) => {
+      set({ open: true, message, title, resolve });
+    }),
+
+  _answer: (value) => {
+    const { resolve } = get();
+    set({ open: false, resolve: null });
+    resolve?.(value);
+  },
+}));
+
+export function confirm(message: string, title = '确认操作'): Promise<boolean> {
+  return useConfirmStore.getState()._show(message, title);
+}
+
+export default function ConfirmDialog() {
+  const { open, message, title, _answer } = useConfirmStore();
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => _answer(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-[360px] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            aria-describedby="confirm-message"
+          >
+            <div className="flex items-center gap-3 border-b border-slate-200 px-6 py-4">
+              <AlertTriangle size={20} className="shrink-0 text-amber-500" />
+              <h3 id="confirm-title" className="text-lg font-semibold text-slate-800">
+                {title}
+              </h3>
+            </div>
+            <div className="px-6 py-5">
+              <p id="confirm-message" className="text-sm text-slate-600">
+                {message}
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => _answer(false)}
+                className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => _answer(true)}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
+              >
+                确定
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
