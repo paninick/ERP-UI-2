@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import * as jobApi from '@/api/production';
+import client from '@/api/client';
 import { toast } from '@/components/ui/Toast';
 import {
   AlertTriangle,
@@ -11,6 +12,9 @@ import {
   Play,
   RefreshCw,
   TrendingUp,
+  CheckCircle2,
+  Clock,
+  BarChart3,
 } from 'lucide-react';
 
 interface ProduceJob {
@@ -59,8 +63,14 @@ export default function ProductionKanbanPage() {
     }
   }, [t]);
 
+  const [stats, setStats] = useState({ totalPlans: 0, totalWipJobs: 0, todayCompleted: 0, weekCompleted: 0, capacityUtilization: 0, onTimeDeliveryRate: 0 });
+
   useEffect(() => {
     fetchData();
+    client.get('/erp/produceboard/stats').then((res: any) => {
+      const d = res.data || res || {};
+      setStats({ totalPlans: d.totalPlans||0, totalWipJobs: d.totalWipJobs||0, todayCompleted: d.todayCompleted||0, weekCompleted: d.weekCompleted||0, capacityUtilization: d.capacityUtilization||0, onTimeDeliveryRate: d.onTimeDeliveryRate||0 });
+    }).catch(() => {});
   }, [fetchData]);
 
   const metrics = useMemo(() => {
@@ -147,7 +157,34 @@ export default function ProductionKanbanPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
+            <p className="text-2xl font-bold">{stats.totalPlans}</p>
+            <p className="text-xs text-blue-100 mt-1">总计划数</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
+            <p className="text-2xl font-bold">{stats.totalWipJobs}</p>
+            <p className="text-xs text-blue-100 mt-1">在制工单</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
+            <p className="text-2xl font-bold">{stats.todayCompleted}</p>
+            <p className="text-xs text-blue-100 mt-1">今日完成</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
+            <p className="text-2xl font-bold">{stats.weekCompleted}</p>
+            <p className="text-xs text-blue-100 mt-1">本周完成</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
+            <p className="text-2xl font-bold">{stats.capacityUtilization}%</p>
+            <p className="text-xs text-blue-100 mt-1">产能利用率</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
+            <p className="text-2xl font-bold">{stats.onTimeDeliveryRate}%</p>
+            <p className="text-xs text-blue-100 mt-1">准时交付率</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-center gap-3">
               <div className="rounded-2xl bg-white/15 p-2">
@@ -158,7 +195,7 @@ export default function ProductionKanbanPage() {
                 <p className="text-2xl font-semibold">{jobs.length}</p>
               </div>
             </div>
-            <p className="mt-3 text-xs text-blue-100/90">{t('page.kanban.metrics.totalPlanQty', { qty: metrics.totalPlanQty.toLocaleString() })}</p>
+            <p className="mt-3 text-xs text-blue-100/90">计划产量 {metrics.totalPlanQty.toLocaleString()}</p>
           </div>
 
           <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">

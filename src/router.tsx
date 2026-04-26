@@ -35,7 +35,7 @@ const JobProcessPage = lazy(() => import('@/pages/production/job-process/index')
 const ProcessReportPage = lazy(() => import('@/pages/production/job-process/report'));
 const ProductionKanbanPage = lazy(() => import('@/pages/production/kanban/index'));
 const StyleProgressPage = lazy(() => import('@/pages/production/style-progress/index'));
-const ProductTracePage = lazy(() => import('@/pages/production/product-trace/index'));
+const ProductTracePage = lazy(() => import('@/pages/quality/product-trace/index'));
 const QualityInspectionPage = lazy(() => import('@/pages/quality/inspection/index'));
 const QualityInspectionPrintPage = lazy(() => import('@/pages/quality/inspection/print'));
 const SystemUserPage = lazy(() => import('@/pages/system/user/index'));
@@ -109,6 +109,7 @@ export const router = createBrowserRouter([
       {path: 'production/kanban', element: lazyPage(<ProductionKanbanPage />)},
       {path: 'production/style-progress', element: lazyPage(<StyleProgressPage />)},
       {path: 'production/product-trace', element: lazyPage(<ProductTracePage />)},
+      {path: 'quality/product-trace', element: lazyPage(<ProductTracePage />)},
 
       {path: 'material/main', element: lazyPage(<MainMaterialPage />)},
       {path: 'material/auxiliary', element: lazyPage(<AuxiliaryPage />)},
