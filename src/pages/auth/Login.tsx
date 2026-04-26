@@ -11,6 +11,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const login = useAuthStore((state) => state.login);
+  const getInfo = useAuthStore((state) => state.getInfo);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -29,7 +30,8 @@ export default function Login() {
     setError('');
     try {
       await login(username, password);
-      navigate('/');
+      await getInfo();
+      navigate('/', { replace: true });
     } catch (err: any) {
       setError(err.message || t('loginFailed'));
     } finally {
