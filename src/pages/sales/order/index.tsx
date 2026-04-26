@@ -106,8 +106,8 @@ export default function SalesOrderPage() {
     { key: 'customerName', title: t('page.sales.columns.customerName') },
     { key: 'bulkOrderNo', title: t('page.sales.columns.bulkOrderNo') },
     { key: 'styleCode', title: t('page.sales.columns.styleCode') },
-    { key: 'orderDate', title: t('page.sales.columns.orderDate') },
-    { key: 'deliveryDate', title: t('page.sales.columns.deliveryDate') },
+    { key: 'salesDate', title: t('page.sales.columns.orderDate') },
+    { key: 'dueDate', title: t('page.sales.columns.deliveryDate') },
     { key: 'quantity', title: t('page.sales.columns.quantity') },
     {
       key: 'amount',

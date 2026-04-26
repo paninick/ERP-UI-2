@@ -16,8 +16,8 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
     salesNo: '',
     customerName: '',
     styleCode: '',
-    orderDate: '',
-    deliveryDate: '',
+    salesDate: '',
+    dueDate: '',
     quantity: '',
     amount: '',
     remark: '',
@@ -31,8 +31,8 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
         salesNo: initialValues.salesNo || '',
         customerName: initialValues.customerName || '',
         styleCode: initialValues.styleCode || '',
-        orderDate: initialValues.orderDate || '',
-        deliveryDate: initialValues.deliveryDate || '',
+        salesDate: initialValues.salesDate || '',
+        dueDate: initialValues.dueDate || '',
         quantity: String(initialValues.quantity || ''),
         amount: String(initialValues.amount || ''),
         remark: initialValues.remark || '',
@@ -42,8 +42,8 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
         salesNo: '',
         customerName: '',
         styleCode: '',
-        orderDate: '',
-        deliveryDate: '',
+        salesDate: '',
+        dueDate: '',
         quantity: '',
         amount: '',
         remark: '',
@@ -89,8 +89,8 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
       <Field label={t('page.sales.columns.salesNo')} name="salesNo" />
       <Field label={t('page.sales.columns.customerName')} name="customerName" />
       <Field label={t('page.sales.columns.styleCode')} name="styleCode" />
-      <Field label={t('page.sales.columns.orderDate')} name="orderDate" type="date" />
-      <Field label={t('page.sales.columns.deliveryDate')} name="deliveryDate" type="date" />
+      <Field label={t('page.sales.columns.salesDate')} name="salesDate" type="date" />
+      <Field label={t('page.sales.columns.dueDate')} name="dueDate" type="date" />
       <Field label={t('page.sales.columns.quantity')} name="quantity" type="number" />
       <Field label={t('page.sales.columns.amount')} name="amount" type="number" />
       <div className="flex items-start gap-3">
