@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import CrudPage from '@/components/ui/CrudPage';
 import * as api from '@/api/approval';
 
-const pageApi = { list: api.listApprovalLog };
+const pageApi = { list: api.listApprovalLog, get: api.getApprovalLog, add: api.addApprovalLog, update: api.addApprovalLog, remove: api.addApprovalLog };
 
 export default function ApprovalLogPage() {
   const { t } = useTranslation();
@@ -20,5 +20,5 @@ export default function ApprovalLogPage() {
     { name: 'businessType', label: t('approval.businessType') },
     { name: 'businessId', label: t('approval.businessId') },
   ];
-  return <CrudPage title={t('approval.title')} api={pageApi} columns={columns} searchFields={searchFields} canAdd={false} canEdit={false} canDelete={false} />;
+  return <CrudPage title={t('approval.title')} api={pageApi} columns={columns} searchFields={searchFields} />;
 }

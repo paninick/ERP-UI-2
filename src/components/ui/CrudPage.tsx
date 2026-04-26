@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCrud } from '@/hooks/useCrud';
 import { confirm } from './ConfirmDialog';
 import BaseModal from './BaseModal';
@@ -39,6 +40,8 @@ interface CrudPageProps {
   }>;
   rowKey?: string;
   extraActions?: (record: any) => ReactNode;
+  isEditDisabled?: (record: any) => boolean;
+  isDeleteDisabled?: (record: any) => boolean;
 }
 
 export default function CrudPage({
@@ -49,7 +52,10 @@ export default function CrudPage({
   FormComponent,
   rowKey = 'id',
   extraActions,
+  isEditDisabled,
+  isDeleteDisabled,
 }: CrudPageProps) {
+  const { t } = useTranslation();
   const {
     data,
     loading,
@@ -76,7 +82,7 @@ export default function CrudPage({
     ...columns,
     {
       key: 'actions',
-      title: '操作',
+      title: t('common.actions'),
       width: '160px',
       render: (_: any, record: any) => (
         <div className="flex gap-1">
@@ -86,20 +92,22 @@ export default function CrudPage({
               setEditingRecord(record);
               setModalOpen(true);
             }}
-            className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
+            disabled={Boolean(isEditDisabled?.(record))}
+            className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
           >
-            编辑
+            {t('common.edit')}
           </button>
           <button
             onClick={async (event) => {
               event.stopPropagation();
-              if (await confirm('确认删除当前记录吗？')) {
+              if (await confirm(t('crud.confirmDeleteCurrent'))) {
                 handleDelete(String(record[rowKey]));
               }
             }}
-            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+            disabled={Boolean(isDeleteDisabled?.(record))}
+            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
           >
-            删除
+            {t('common.delete')}
           </button>
           {extraActions && extraActions(record)}
         </div>
@@ -130,7 +138,7 @@ export default function CrudPage({
           className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
         >
           <Plus size={14} />
-          新增
+          {t('common.add')}
         </button>
       </div>
 
@@ -157,7 +165,7 @@ export default function CrudPage({
                   aria-label={field.label}
                   className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
                 >
-                  <option value="">全部</option>
+                  <option value="">{t('common.all')}</option>
                   {field.options?.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -172,7 +180,7 @@ export default function CrudPage({
                   }
                   aria-label={field.label}
                   className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                  placeholder={`请输入${field.label}`}
+                  placeholder={t('common.pleaseEnterField', { field: field.label })}
                 />
               )}
             </SearchField>
@@ -190,7 +198,7 @@ export default function CrudPage({
 
       <BaseModal
         open={modalOpen}
-        title={editingRecord ? `编辑${title}` : `新增${title}`}
+        title={editingRecord ? t('crud.editTitle', { title }) : t('crud.addTitle', { title })}
         onClose={() => setModalOpen(false)}
       >
         <FormComponent

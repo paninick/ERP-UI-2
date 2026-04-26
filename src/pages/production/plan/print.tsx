@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import * as approvalApi from '@/api/approval';
+import ApprovalTimeline from '@/components/business/ApprovalTimeline';
 import * as productionApi from '@/api/production';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import PrintCodeStrip from '@/components/business/PrintCodeStrip';
@@ -24,6 +26,8 @@ export default function ProducePlanPrintPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [record, setRecord] = useState<ProducePlanRecord | null>(null);
+  const [approvalLogs, setApprovalLogs] = useState<any[]>([]);
+  const [approvalLoading, setApprovalLoading] = useState(false);
 
   const planStatus = useDictOptions('erp_plan_status', [
     { value: '0', label: t('page.kanban.status.pending') },
@@ -37,14 +41,25 @@ export default function ProducePlanPrintPage() {
 
     async function load() {
       setLoading(true);
+      setApprovalLoading(true);
       try {
         const response: any = await productionApi.getProducePlan(Number(id)).catch(() => null);
         if (mounted) {
           setRecord(response?.data || response || null);
         }
+        const approvalRes: any = await approvalApi.listApprovalLog({
+          businessType: 'PRODUCE_PLAN',
+          businessId: Number(id),
+          pageNum: 1,
+          pageSize: 50,
+        }).catch(() => null);
+        if (mounted) {
+          setApprovalLogs(approvalRes?.rows || []);
+        }
       } finally {
         if (mounted) {
           setLoading(false);
+          setApprovalLoading(false);
         }
       }
     }
@@ -165,6 +180,10 @@ export default function ProducePlanPrintPage() {
             <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">{t('page.planPrint.tips.downstream')}</div>
           </div>
         </section>
+
+        <div className="mt-6">
+          <ApprovalTimeline title="计划审批记录" logs={approvalLogs} loading={approvalLoading} />
+        </div>
       </section>
     </div>
   );

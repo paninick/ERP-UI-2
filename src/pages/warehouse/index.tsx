@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
 import * as warehouseApi from '@/api/warehouse';
@@ -12,20 +13,21 @@ const api = {
 };
 
 export default function WarehousePage() {
+  const { t } = useTranslation();
   const commonStatus = useDictOptions('sys_common_status', [
-    { value: '0', label: '启用' },
-    { value: '1', label: '停用' },
+    { value: '0', label: t('page.warehouse.status.enabled') },
+    { value: '1', label: t('page.warehouse.status.disabled') },
   ]);
 
   const columns = [
-    { key: 'warehouseName', title: '仓库名称' },
-    { key: 'warehouseCode', title: '仓库编码' },
-    { key: 'address', title: '地址' },
-    { key: 'manager', title: '负责人' },
-    { key: 'phone', title: '联系电话' },
+    { key: 'warehouseName', title: t('page.warehouse.columns.warehouseName') },
+    { key: 'warehouseCode', title: t('page.warehouse.columns.warehouseCode') },
+    { key: 'address', title: t('page.warehouse.columns.address') },
+    { key: 'manager', title: t('page.warehouse.columns.manager') },
+    { key: 'phone', title: t('page.warehouse.columns.phone') },
     {
       key: 'status',
-      title: '状态',
+      title: t('page.warehouse.columns.status'),
       render: (value: string) => {
         const tag = commonStatus.toTag(value, 'bg-slate-100 text-slate-600');
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
@@ -34,24 +36,24 @@ export default function WarehousePage() {
   ];
 
   const searchFields = [
-    { name: 'warehouseName', label: '仓库名称' },
-    { name: 'warehouseCode', label: '仓库编码' },
-    { name: 'status', label: '状态', type: 'select' as const, options: commonStatus.options },
+    { name: 'warehouseName', label: t('page.warehouse.columns.warehouseName') },
+    { name: 'warehouseCode', label: t('page.warehouse.columns.warehouseCode') },
+    { name: 'status', label: t('page.warehouse.columns.status'), type: 'select' as const, options: commonStatus.options },
   ];
 
   const formFields = [
-    { name: 'warehouseName', label: '仓库名称', required: true },
-    { name: 'warehouseCode', label: '仓库编码', required: true },
-    { name: 'address', label: '地址' },
-    { name: 'manager', label: '负责人' },
-    { name: 'phone', label: '联系电话' },
-    { name: 'status', label: '状态', type: 'select' as const, options: commonStatus.options },
-    { name: 'remark', label: '备注', type: 'textarea' as const },
+    { name: 'warehouseName', label: t('page.warehouse.columns.warehouseName'), required: true },
+    { name: 'warehouseCode', label: t('page.warehouse.columns.warehouseCode'), required: true },
+    { name: 'address', label: t('page.warehouse.columns.address') },
+    { name: 'manager', label: t('page.warehouse.columns.manager') },
+    { name: 'phone', label: t('page.warehouse.columns.phone') },
+    { name: 'status', label: t('page.warehouse.columns.status'), type: 'select' as const, options: commonStatus.options },
+    { name: 'remark', label: t('page.warehouse.columns.remark'), type: 'textarea' as const },
   ];
 
   return (
     <CrudPage
-      title="仓库管理"
+      title={t('page.warehouse.title')}
       api={api}
       columns={columns}
       searchFields={searchFields}

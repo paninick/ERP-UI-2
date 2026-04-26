@@ -13,10 +13,16 @@ export function getProcessRouteItems(routeId: number) {
 }
 
 export function addProcessRoute(data: any) {
+  if (data?.route) {
+    return client.post('/erp/processRoute', data);
+  }
   return client.post('/erp/processRoute', { route: data, items: [] });
 }
 
 export function updateProcessRoute(data: any) {
+  if (data?.route) {
+    return client.put('/erp/processRoute', data);
+  }
   return client.put('/erp/processRoute', { route: data, items: [] });
 }
 

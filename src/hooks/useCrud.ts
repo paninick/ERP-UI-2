@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+import i18n from '@/i18n';
 import {toast} from '@/components/ui/Toast';
 
 interface CrudApi {
@@ -32,7 +33,7 @@ export function useCrud(api: CrudApi) {
       setData(response.rows || []);
       setPagination((prev) => ({...prev, total: response.total || 0}));
     } catch (error: any) {
-      toast.error(error.message || '加载数据失败');
+      toast.error(error.message || i18n.t('common.loadDataFailed'));
     } finally {
       setLoading(false);
     }
@@ -59,10 +60,10 @@ export function useCrud(api: CrudApi) {
   const handleAdd = async (formData: any) => {
     try {
       await api.add(formData);
-      toast.success('新增成功');
+      toast.success(i18n.t('common.addSuccess'));
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || '新增失败');
+      toast.error(error.message || i18n.t('common.addFailed'));
       throw error;
     }
   };
@@ -70,10 +71,10 @@ export function useCrud(api: CrudApi) {
   const handleUpdate = async (formData: any) => {
     try {
       await api.update(formData);
-      toast.success('修改成功');
+      toast.success(i18n.t('common.updateSuccess'));
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || '修改失败');
+      toast.error(error.message || i18n.t('common.updateFailed'));
       throw error;
     }
   };
@@ -81,10 +82,10 @@ export function useCrud(api: CrudApi) {
   const handleDelete = async (ids: string) => {
     try {
       await api.remove(ids);
-      toast.success('删除成功');
+      toast.success(i18n.t('common.deleteSuccess'));
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || '删除失败');
+      toast.error(error.message || i18n.t('common.deleteFailed'));
       throw error;
     }
   };

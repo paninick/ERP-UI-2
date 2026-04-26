@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
 import * as bizAbnormalApi from '@/api/bizAbnormal';
@@ -10,78 +11,94 @@ const api = {
   remove: bizAbnormalApi.delBizAbnormal,
 };
 
-const LEVEL_OPTIONS = [
-  { value: '1', label: '一般' },
-  { value: '2', label: '严重' },
-  { value: '3', label: '致命' },
-];
-
-const STATUS_OPTIONS = [
-  { value: '0', label: '待处理' },
-  { value: '1', label: '处理中' },
-  { value: '2', label: '已关闭' },
-];
-
-const LEVEL_MAP: Record<string, { label: string; color: string }> = {
-  '1': { label: '一般', color: 'bg-yellow-100 text-yellow-700' },
-  '2': { label: '严重', color: 'bg-orange-100 text-orange-700' },
-  '3': { label: '致命', color: 'bg-red-100 text-red-700' },
-};
-
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  '0': { label: '待处理', color: 'bg-yellow-100 text-yellow-700' },
-  '1': { label: '处理中', color: 'bg-blue-100 text-blue-700' },
-  '2': { label: '已关闭', color: 'bg-emerald-100 text-emerald-700' },
-};
-
 export default function BizAbnormalPage() {
+  const { t } = useTranslation();
+
+  const levelOptions = [
+    { value: '1', label: t('page.abnormal.levels.normal') },
+    { value: '2', label: t('page.abnormal.levels.serious') },
+    { value: '3', label: t('page.abnormal.levels.critical') },
+  ];
+
+  const statusOptions = [
+    { value: '0', label: t('page.abnormal.status.pending') },
+    { value: '1', label: t('page.abnormal.status.processing') },
+    { value: '2', label: t('page.abnormal.status.closed') },
+  ];
+
+  const bizTypeOptions = [
+    { value: 'MATERIAL_CONSUME', label: '物料消耗' },
+    { value: 'PRODUCE_JOB', label: '生产工单' },
+    { value: 'PRODUCE_JOB_PROCESS', label: '生产工序' },
+    { value: 'QUALITY', label: '质量' },
+    { value: 'OUTSOURCE', label: '外协' },
+  ];
+
+  const levelMap: Record<string, { label: string; color: string }> = {
+    '1': { label: t('page.abnormal.levels.normal'), color: 'bg-yellow-100 text-yellow-700' },
+    '2': { label: t('page.abnormal.levels.serious'), color: 'bg-orange-100 text-orange-700' },
+    '3': { label: t('page.abnormal.levels.critical'), color: 'bg-red-100 text-red-700' },
+  };
+
+  const statusMap: Record<string, { label: string; color: string }> = {
+    '0': { label: t('page.abnormal.status.pending'), color: 'bg-yellow-100 text-yellow-700' },
+    '1': { label: t('page.abnormal.status.processing'), color: 'bg-blue-100 text-blue-700' },
+    '2': { label: t('page.abnormal.status.closed'), color: 'bg-emerald-100 text-emerald-700' },
+  };
+
   const columns = [
-    { key: 'bizType', title: '业务类型' },
-    { key: 'abnormalTitle', title: '异常标题' },
+    { key: 'bizType', title: t('page.abnormal.columns.bizType') },
+    { key: 'abnormalTitle', title: t('page.abnormal.columns.abnormalTitle') },
     {
       key: 'abnormalLevel',
-      title: '等级',
-      render: (v: number | string) => {
-        const matched = LEVEL_MAP[String(v)] || { label: String(v), color: 'bg-slate-100 text-slate-600' };
+      title: t('page.abnormal.columns.abnormalLevel'),
+      render: (value: number | string) => {
+        const matched = levelMap[String(value)] || {
+          label: String(value),
+          color: 'bg-slate-100 text-slate-600',
+        };
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${matched.color}`}>{matched.label}</span>;
       },
     },
     {
       key: 'status',
-      title: '状态',
-      render: (v: string) => {
-        const matched = STATUS_MAP[String(v)] || { label: String(v), color: 'bg-slate-100 text-slate-600' };
+      title: t('page.abnormal.columns.status'),
+      render: (value: string) => {
+        const matched = statusMap[String(value)] || {
+          label: String(value),
+          color: 'bg-slate-100 text-slate-600',
+        };
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${matched.color}`}>{matched.label}</span>;
       },
     },
-    { key: 'handleByName', title: '处理人' },
-    { key: 'handleTime', title: '处理时间' },
-    { key: 'createTime', title: '创建时间' },
+    { key: 'handleByName', title: t('page.abnormal.columns.handleByName') },
+    { key: 'handleTime', title: t('page.abnormal.columns.handleTime') },
+    { key: 'createTime', title: t('page.abnormal.columns.createTime') },
   ];
 
   const searchFields = [
-    { name: 'bizType', label: '业务类型' },
-    { name: 'abnormalTitle', label: '异常标题' },
-    { name: 'abnormalLevel', label: '等级', type: 'select' as const, options: LEVEL_OPTIONS },
-    { name: 'status', label: '状态', type: 'select' as const, options: STATUS_OPTIONS },
+    { name: 'bizType', label: t('page.abnormal.columns.bizType'), type: 'select' as const, options: bizTypeOptions },
+    { name: 'abnormalTitle', label: t('page.abnormal.columns.abnormalTitle') },
+    { name: 'abnormalLevel', label: t('page.abnormal.columns.abnormalLevel'), type: 'select' as const, options: levelOptions },
+    { name: 'status', label: t('page.abnormal.columns.status'), type: 'select' as const, options: statusOptions },
   ];
 
   const formFields = [
-    { name: 'bizType', label: '业务类型', required: true },
-    { name: 'bizId', label: '关联业务ID', type: 'number' as const },
-    { name: 'abnormalCode', label: '异常编码' },
-    { name: 'abnormalTitle', label: '异常标题', required: true },
-    { name: 'abnormalDesc', label: '异常描述', type: 'textarea' as const },
-    { name: 'abnormalLevel', label: '等级', type: 'select' as const, options: LEVEL_OPTIONS },
-    { name: 'status', label: '状态', type: 'select' as const, options: STATUS_OPTIONS },
-    { name: 'handleByName', label: '处理人' },
-    { name: 'handleResult', label: '处理结果', type: 'textarea' as const },
-    { name: 'remark', label: '备注', type: 'textarea' as const },
+    { name: 'bizType', label: t('page.abnormal.columns.bizType'), type: 'select' as const, required: true, options: bizTypeOptions },
+    { name: 'bizId', label: t('page.abnormal.columns.bizId'), type: 'number' as const },
+    { name: 'abnormalCode', label: t('page.abnormal.columns.abnormalCode') },
+    { name: 'abnormalTitle', label: t('page.abnormal.columns.abnormalTitle'), required: true },
+    { name: 'abnormalDesc', label: t('page.abnormal.columns.abnormalDesc'), type: 'textarea' as const },
+    { name: 'abnormalLevel', label: t('page.abnormal.columns.abnormalLevel'), type: 'select' as const, options: levelOptions },
+    { name: 'status', label: t('page.abnormal.columns.status'), type: 'select' as const, options: statusOptions },
+    { name: 'handleByName', label: t('page.abnormal.columns.handleByName') },
+    { name: 'handleResult', label: t('page.abnormal.columns.handleResult'), type: 'textarea' as const },
+    { name: 'remark', label: t('page.abnormal.columns.remark'), type: 'textarea' as const },
   ];
 
   return (
     <CrudPage
-      title="业务异常池"
+      title={t('page.abnormal.title')}
       api={api}
       columns={columns}
       searchFields={searchFields}

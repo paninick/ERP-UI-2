@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as salesApi from '@/api/sales';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import { toast } from '@/components/ui/Toast';
 import { useDictOptions } from '@/hooks/useDictOptions';
 import { buildDocNo } from '@/utils/detailDraft';
+import { isApprovalLocked } from '@/utils/approval';
 
 interface SalesOrderOption {
   id: number;
@@ -26,16 +28,18 @@ function buildPlanNo() {
 }
 
 export default function PlanForm({ initialValues, onSubmit, onCancel }: PlanFormProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [salesOrders, setSalesOrders] = useState<SalesOrderOption[]>([]);
   const [form, setForm] = useState<Record<string, string>>({});
 
   const planStatus = useDictOptions('erp_plan_status', [
-    { value: '0', label: '待排产' },
-    { value: '1', label: '已排产' },
-    { value: '2', label: '生产中' },
-    { value: '3', label: '已完成' },
+    { value: '0', label: t('page.plan.form.status.pending') },
+    { value: '1', label: t('page.plan.form.status.scheduled') },
+    { value: '2', label: t('page.plan.form.status.running') },
+    { value: '3', label: t('page.plan.form.status.completed') },
   ]);
+  const locked = isApprovalLocked(initialValues?.status, planStatus.options);
 
   useEffect(() => {
     salesApi
@@ -102,12 +106,12 @@ export default function PlanForm({ initialValues, onSubmit, onCancel }: PlanForm
     event.preventDefault();
 
     if (!form.salesOrderId) {
-      toast.error('请先选择销售订单，再生成生产计划。');
+      toast.error(t('page.plan.form.toasts.selectSalesOrder'));
       return;
     }
 
     if (!form.styleCode || !form.planQty) {
-      toast.error('销售订单未带出款号或计划数量，请先检查来源数据。');
+      toast.error(t('page.plan.form.toasts.invalidSource'));
       return;
     }
 
@@ -141,35 +145,40 @@ export default function PlanForm({ initialValues, onSubmit, onCancel }: PlanForm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {locked && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {t('approval.lockedHint')}
+        </div>
+      )}
       <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-        计划单应从销售订单派生。选择销售订单后，款号和计划数量自动带出，避免重复维护。
+        {t('page.plan.form.banner')}
       </div>
 
       <DocumentCodeBoard
-        title="计划单展示规则"
-        description="计划单以计划编号作为排产主号，销售单号作为来源号，款号和数量仅展示不重复造数。"
+        title={t('page.plan.form.codeBoard.title')}
+        description={t('page.plan.form.codeBoard.description')}
         items={[
           {
-            label: '计划主号',
+            label: t('page.plan.form.codeBoard.items.planNo.label'),
             value: form.planNo,
-            helper: '排产、看板、车间调度使用。',
+            helper: t('page.plan.form.codeBoard.items.planNo.helper'),
             tone: 'primary',
           },
           {
-            label: '销售来源号',
+            label: t('page.plan.form.codeBoard.items.salesNo.label'),
             value: form.salesNo,
-            helper: '来源锁定后不建议在计划层改挂单。',
+            helper: t('page.plan.form.codeBoard.items.salesNo.helper'),
             tone: 'secondary',
           },
           {
-            label: '款号',
+            label: t('page.plan.form.codeBoard.items.styleCode.label'),
             value: form.styleCode,
-            helper: '由销售订单带出。',
+            helper: t('page.plan.form.codeBoard.items.styleCode.helper'),
           },
           {
-            label: '计划数量',
+            label: t('page.plan.form.codeBoard.items.planQty.label'),
             value: form.planQty,
-            helper: '默认继承订单数量，可按排产场景拆分。',
+            helper: t('page.plan.form.codeBoard.items.planQty.helper'),
           },
         ]}
       />
@@ -177,29 +186,30 @@ export default function PlanForm({ initialValues, onSubmit, onCancel }: PlanForm
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">
           <span className="mr-1 text-red-500">*</span>
-          计划编号
+          {t('page.plan.columns.planNo')}
         </label>
         <input
           value={form.planNo || ''}
           onChange={(event) => updateField('planNo', event.target.value)}
+          disabled={locked}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="计划编号"
+          aria-label={t('page.plan.columns.planNo')}
         />
       </div>
 
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">
           <span className="mr-1 text-red-500">*</span>
-          销售订单
+          {t('page.plan.form.salesOrder')}
         </label>
         <select
           value={form.salesOrderId || ''}
           onChange={(event) => updateField('salesOrderId', event.target.value)}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="销售订单"
-          disabled={Boolean(initialValues?.id)}
+          aria-label={t('page.plan.form.salesOrder')}
+          disabled={Boolean(initialValues?.id) || locked}
         >
-          <option value="">请选择销售订单</option>
+          <option value="">{t('page.plan.form.selectSalesOrder')}</option>
           {salesOrders.map((item) => (
             <option key={item.id} value={item.id}>
               {item.salesNo || item.id}
@@ -210,42 +220,48 @@ export default function PlanForm({ initialValues, onSubmit, onCancel }: PlanForm
         </select>
       </div>
 
-      <ReadonlyField label="销售单号" value={form.salesNo} />
-      <ReadonlyField label="款号" value={form.styleCode} />
-      <ReadonlyField label="订单数量" value={selectedOrder?.quantity != null ? String(selectedOrder.quantity) : ''} />
+      <ReadonlyField label={t('page.plan.columns.salesNo')} value={form.salesNo} />
+      <ReadonlyField label={t('page.plan.columns.styleCode')} value={form.styleCode} />
+      <ReadonlyField
+        label={t('page.plan.form.orderQty')}
+        value={selectedOrder?.quantity != null ? String(selectedOrder.quantity) : ''}
+      />
 
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">
           <span className="mr-1 text-red-500">*</span>
-          计划数量
+          {t('page.plan.columns.planQty')}
         </label>
         <input
           type="number"
           value={form.planQty || ''}
           onChange={(event) => updateField('planQty', event.target.value)}
+          disabled={locked}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="计划数量"
+          aria-label={t('page.plan.columns.planQty')}
         />
       </div>
 
       <div className="flex items-center gap-3">
-        <label className="w-28 shrink-0 text-right text-sm text-slate-600">计划日期</label>
+        <label className="w-28 shrink-0 text-right text-sm text-slate-600">{t('page.plan.columns.planDate')}</label>
         <input
           type="date"
           value={form.planDate || ''}
           onChange={(event) => updateField('planDate', event.target.value)}
+          disabled={locked}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="计划日期"
+          aria-label={t('page.plan.columns.planDate')}
         />
       </div>
 
       <div className="flex items-center gap-3">
-        <label className="w-28 shrink-0 text-right text-sm text-slate-600">状态</label>
+        <label className="w-28 shrink-0 text-right text-sm text-slate-600">{t('page.plan.columns.status')}</label>
         <select
           value={form.status || ''}
           onChange={(event) => updateField('status', event.target.value)}
+          disabled
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="状态"
+          aria-label={t('page.plan.columns.status')}
         >
           {planStatus.options
             .filter((item) => item.value !== '3')
@@ -258,12 +274,13 @@ export default function PlanForm({ initialValues, onSubmit, onCancel }: PlanForm
       </div>
 
       <div className="flex items-start gap-3">
-        <label className="w-28 shrink-0 pt-2 text-right text-sm text-slate-600">备注</label>
+        <label className="w-28 shrink-0 pt-2 text-right text-sm text-slate-600">{t('common.remark')}</label>
         <textarea
           value={form.remark || ''}
           onChange={(event) => updateField('remark', event.target.value)}
+          disabled={locked}
           className="h-24 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="备注"
+          aria-label={t('common.remark')}
         />
       </div>
 
@@ -273,14 +290,14 @@ export default function PlanForm({ initialValues, onSubmit, onCancel }: PlanForm
           onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || locked}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? '提交中...' : '确定'}
+          {loading ? t('common.submitting') : t('common.confirm')}
         </button>
       </div>
     </form>

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Download, Plus, Printer, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import * as approvalApi from '@/api/approval';
 import * as salesApi from '@/api/sales';
+import ApprovalTimeline from '@/components/business/ApprovalTimeline';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import { toast } from '@/components/ui/Toast';
 import { createRowId, readDraft, writeDraft } from '@/utils/detailDraft';
@@ -126,6 +128,8 @@ export default function SalesOrderDetailPage() {
   const [saving, setSaving] = useState(false);
   const [record, setRecord] = useState<any>(null);
   const [draft, setDraft] = useState<SalesDetailDraft | null>(null);
+  const [approvalLogs, setApprovalLogs] = useState<any[]>([]);
+  const [approvalLoading, setApprovalLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -141,6 +145,22 @@ export default function SalesOrderDetailPage() {
         setRecord(nextRecord);
         const fallback = buildDefaultDraft(nextRecord);
         setDraft(readDraft('sales-order-detail', id, fallback));
+
+        if (id !== 'new') {
+          setApprovalLoading(true);
+          const approvalRes: any = await approvalApi.listApprovalLog({
+            businessType: 'SALES_ORDER',
+            businessId: Number(id),
+            pageNum: 1,
+            pageSize: 50,
+          }).catch(() => null);
+          if (mounted) {
+            setApprovalLogs(approvalRes?.rows || []);
+          }
+          if (mounted) {
+            setApprovalLoading(false);
+          }
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -489,6 +509,8 @@ export default function SalesOrderDetailPage() {
           </div>
         </div>
       </section>
+
+      <ApprovalTimeline title="销售审批记录" logs={approvalLogs} loading={approvalLoading} />
 
       <section className="rounded-3xl bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">

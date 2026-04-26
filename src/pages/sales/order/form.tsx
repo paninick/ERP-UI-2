@@ -1,4 +1,7 @@
 import {useEffect, useState} from 'react';
+import {useTranslation} from 'react-i18next';
+import {useDictOptions} from '@/hooks/useDictOptions';
+import {isApprovalLocked} from '@/utils/approval';
 
 interface SalesOrderFormProps {
   initialValues?: any;
@@ -7,6 +10,8 @@ interface SalesOrderFormProps {
 }
 
 export default function SalesOrderForm({initialValues, onSubmit, onCancel}: SalesOrderFormProps) {
+  const {t} = useTranslation();
+  const orderStatus = useDictOptions('sales_order_status');
   const [form, setForm] = useState({
     salesNo: '',
     customerName: '',
@@ -18,6 +23,7 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
     remark: '',
   });
   const [loading, setLoading] = useState(false);
+  const locked = isApprovalLocked(initialValues?.orderStatus, orderStatus.options);
 
   useEffect(() => {
     if (initialValues) {
@@ -67,6 +73,7 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
         type={type}
         value={(form as any)[name]}
         onChange={(event) => setForm((prev) => ({...prev, [name]: event.target.value}))}
+        disabled={locked}
         className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
       />
     </div>
@@ -74,19 +81,25 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="订单编号" name="salesNo" />
-      <Field label="客户名称" name="customerName" />
-      <Field label="款号" name="styleCode" />
-      <Field label="订单日期" name="orderDate" type="date" />
-      <Field label="交付日期" name="deliveryDate" type="date" />
-      <Field label="数量" name="quantity" type="number" />
-      <Field label="金额" name="amount" type="number" />
+      {locked && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {t('approval.lockedHint')}
+        </div>
+      )}
+      <Field label={t('page.sales.columns.salesNo')} name="salesNo" />
+      <Field label={t('page.sales.columns.customerName')} name="customerName" />
+      <Field label={t('page.sales.columns.styleCode')} name="styleCode" />
+      <Field label={t('page.sales.columns.orderDate')} name="orderDate" type="date" />
+      <Field label={t('page.sales.columns.deliveryDate')} name="deliveryDate" type="date" />
+      <Field label={t('page.sales.columns.quantity')} name="quantity" type="number" />
+      <Field label={t('page.sales.columns.amount')} name="amount" type="number" />
       <div className="flex items-start gap-3">
-        <label className="w-20 pt-2 text-right text-sm text-slate-600">备注</label>
+        <label className="w-20 pt-2 text-right text-sm text-slate-600">{t('page.systemRole.columns.remark')}</label>
         <textarea
-          aria-label="订单备注"
+          aria-label={t('page.systemRole.columns.remark')}
           value={form.remark}
           onChange={(event) => setForm((prev) => ({...prev, remark: event.target.value}))}
+          disabled={locked}
           className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
         />
       </div>
@@ -96,14 +109,14 @@ export default function SalesOrderForm({initialValues, onSubmit, onCancel}: Sale
           onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || locked}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? '提交中...' : '确定'}
+          {loading ? t('common.submitting') : t('common.confirm')}
         </button>
       </div>
     </form>

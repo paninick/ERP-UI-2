@@ -4,7 +4,10 @@ import { AlertTriangle, ArrowLeft, ChevronRight, Save, Sparkles } from 'lucide-r
 import { useTranslation } from 'react-i18next';
 import * as defectApi from '@/api/defect';
 import * as employeeApi from '@/api/employee';
+import * as materialConsumeApi from '@/api/produceMaterialConsume';
 import * as jobProcessApi from '@/api/produceJobProcess';
+import * as reportLogApi from '@/api/produceReportLog';
+import * as processDefApi from '@/api/processDef';
 import * as jobApi from '@/api/production';
 import { toast } from '@/components/ui/Toast';
 import DefectForm from './DefectForm';
@@ -50,6 +53,7 @@ interface ProduceJob {
   colorCode?: string;
   sizeCode?: string;
   planQty?: number;
+  producePlanId?: number;
 }
 
 interface ProcessStep {
@@ -62,14 +66,48 @@ interface ProcessStep {
   outQty?: number;
 }
 
+interface ProcessDefOption {
+  id: number;
+  processCode?: string;
+  processName?: string;
+  needQualityCheck?: number;
+  enableOutsource?: number;
+}
+
 interface EmployeeOption {
   id: number;
   employeeName: string;
   department?: string;
 }
 
+interface MaterialConsumeItem {
+  id: number;
+  jobId?: number;
+  jobProcessId?: number;
+  reportLogId?: number;
+  materialCode?: string;
+  materialName?: string;
+  materialType?: string;
+  actualQty?: number;
+  actualLossQty?: number;
+  actualCost?: number;
+  theoreticalCost?: number;
+  costDiff?: number;
+  isOverLimit?: string;
+  approvalStatus?: string;
+  batchNo?: string;
+  unit?: string;
+}
+
 function isReportableProcess(process: ProcessStep) {
   return process?.processStatus === 'PENDING' || process?.processStatus === 'RUNNING';
+}
+
+function normalizeProcessRows(response: any): ProcessStep[] {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.rows)) return response.rows;
+  if (Array.isArray(response?.data)) return response.data;
+  return [];
 }
 
 export default function ProcessReportPage() {
@@ -88,6 +126,16 @@ export default function ProcessReportPage() {
   const [form, setForm] = useState<ReportFormState>(EMPTY_FORM);
   const [defects, setDefects] = useState<DefectItem[]>([]);
   const [processes, setProcesses] = useState<ProcessStep[]>([]);
+  const [processDefs, setProcessDefs] = useState<ProcessDefOption[]>([]);
+  const [materialConsumes, setMaterialConsumes] = useState<MaterialConsumeItem[]>([]);
+  const [materialLoading, setMaterialLoading] = useState(false);
+  const [bindingConsumeId, setBindingConsumeId] = useState<number | null>(null);
+  const [customAction, setCustomAction] = useState({
+    processId: '',
+    processSeq: '',
+    reason: '',
+    isOutsource: '0',
+  });
 
   const inQtyNum = useMemo(() => toNumber(form.inQty), [form.inQty]);
   const outQtyNum = useMemo(() => toNumber(form.outQty), [form.outQty]);
@@ -138,6 +186,41 @@ export default function ProcessReportPage() {
     return Math.max(0, inQtyNum - outQtyNum - defectQtyNum);
   }, [defectQtyNum, inQtyNum, outQtyNum]);
 
+  const materialSummary = useMemo(() => {
+    return materialConsumes.reduce(
+      (acc, item) => {
+        acc.totalQty += Number(item.actualQty || 0);
+        acc.totalActualCost += Number(item.actualCost || 0);
+        acc.totalTheoreticalCost += Number(item.theoreticalCost || 0);
+        acc.totalCostDiff += Number(item.costDiff || 0);
+        acc.totalActualLoss += Number(item.actualLossQty || 0);
+        if (item.isOverLimit === '1') {
+          acc.overLimitCount += 1;
+        }
+        if (item.approvalStatus === '1') {
+          acc.pendingApprovalCount += 1;
+        }
+        return acc;
+      },
+      {
+        totalQty: 0,
+        totalActualCost: 0,
+        totalTheoreticalCost: 0,
+        totalCostDiff: 0,
+        totalActualLoss: 0,
+        overLimitCount: 0,
+        pendingApprovalCount: 0,
+      },
+    );
+  }, [materialConsumes]);
+
+  const pendingMaterialConsumes = useMemo(
+    () => materialConsumes.filter((item) => !item.jobProcessId),
+    [materialConsumes],
+  );
+
+  const formatAmount = (value: number) => value.toFixed(2);
+
   useEffect(() => {
     setForm((prev) => ({ ...prev, defectQty: String(defectQtyNum) }));
   }, [defectQtyNum]);
@@ -162,7 +245,7 @@ export default function ProcessReportPage() {
         setJob(jobRes?.data || jobRes || null);
         setEmployees(employeeRes?.rows || []);
 
-        const rows: ProcessStep[] = processRes?.rows || processRes || [];
+        const rows = normalizeProcessRows(processRes);
         const sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
         setProcesses(sorted);
 
@@ -193,10 +276,54 @@ export default function ProcessReportPage() {
     loadPage();
   }, [jobId, targetProcessId]);
 
+  useEffect(() => {
+    processDefApi.listProcessDef({ pageNum: 1, pageSize: 999, status: '0' })
+      .then((res: any) => {
+        const rows = Array.isArray(res?.rows) ? res.rows : Array.isArray(res?.data) ? res.data : [];
+        setProcessDefs(rows);
+      })
+      .catch(() => setProcessDefs([]));
+  }, []);
+
+  useEffect(() => {
+    if (!jobId) {
+      setMaterialConsumes([]);
+      return;
+    }
+
+    const baseParams: Record<string, any> = {
+      pageNum: 1,
+      pageSize: 200,
+      jobId: Number(jobId),
+    };
+    const processParams = currentProcess?.id
+      ? { ...baseParams, jobProcessId: currentProcess.id }
+      : baseParams;
+
+    setMaterialLoading(true);
+    Promise.all([
+      materialConsumeApi.listProduceMaterialConsume(processParams),
+      materialConsumeApi.listProduceMaterialConsume(baseParams),
+    ])
+      .then(([currentRes, allRes]: any) => {
+        const currentRows = Array.isArray(currentRes?.rows) ? currentRes.rows : Array.isArray(currentRes?.data) ? currentRes.data : [];
+        const allRows = Array.isArray(allRes?.rows) ? allRes.rows : Array.isArray(allRes?.data) ? allRes.data : [];
+        const merged = [...currentRows];
+        allRows.forEach((item: MaterialConsumeItem) => {
+          if (!merged.some((existing) => existing.id === item.id) && !item.jobProcessId) {
+            merged.push(item);
+          }
+        });
+        setMaterialConsumes(merged);
+      })
+      .catch(() => setMaterialConsumes([]))
+      .finally(() => setMaterialLoading(false));
+  }, [currentProcess?.id, jobId]);
+
   const reloadProcessState = async (nextInQty?: number) => {
     const numericJobId = Number(jobId);
     const processRes = await jobProcessApi.listByJob(numericJobId);
-    const rows: ProcessStep[] = (processRes as any)?.rows || processRes || [];
+    const rows = normalizeProcessRows(processRes);
     const sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
     setProcesses(sorted);
     const nextProcess = sorted.find((item) => isReportableProcess(item)) || null;
@@ -207,6 +334,146 @@ export default function ProcessReportPage() {
       inQty: nextInQty ? String(nextInQty) : '',
     });
     return nextProcess;
+  };
+
+  const reloadMaterialConsumes = async () => {
+    if (!jobId) {
+      setMaterialConsumes([]);
+      return;
+    }
+    const baseParams: Record<string, any> = {
+      pageNum: 1,
+      pageSize: 200,
+      jobId: Number(jobId),
+    };
+    const processParams = currentProcess?.id
+      ? { ...baseParams, jobProcessId: currentProcess.id }
+      : baseParams;
+
+    setMaterialLoading(true);
+    try {
+      const [currentRes, allRes]: any = await Promise.all([
+        materialConsumeApi.listProduceMaterialConsume(processParams),
+        materialConsumeApi.listProduceMaterialConsume(baseParams),
+      ]);
+      const currentRows = Array.isArray(currentRes?.rows) ? currentRes.rows : Array.isArray(currentRes?.data) ? currentRes.data : [];
+      const allRows = Array.isArray(allRes?.rows) ? allRes.rows : Array.isArray(allRes?.data) ? allRes.data : [];
+      const merged = [...currentRows];
+      allRows.forEach((item: MaterialConsumeItem) => {
+        if (!merged.some((existing) => existing.id === item.id) && !item.jobProcessId) {
+          merged.push(item);
+        }
+      });
+      setMaterialConsumes(merged);
+    } catch {
+      setMaterialConsumes([]);
+    } finally {
+      setMaterialLoading(false);
+    }
+  };
+
+  const resetCustomAction = () => {
+    setCustomAction({
+      processId: '',
+      processSeq: '',
+      reason: '',
+      isOutsource: '0',
+    });
+  };
+
+  const handleInsertCustomProcess = async () => {
+    if (!jobId) return;
+    if (!customAction.processId) {
+      toast.warning('请选择要插入的工序');
+      return;
+    }
+    if (!customAction.reason.trim()) {
+      toast.warning('请填写插入原因，便于追溯');
+      return;
+    }
+
+    const selected = processDefs.find((item) => String(item.id) === customAction.processId);
+    const insertSeq = customAction.processSeq
+      ? Number(customAction.processSeq)
+      : currentProcess
+        ? currentProcess.processSeq
+        : undefined;
+
+    try {
+      await jobProcessApi.insertCustomProcess({
+        jobId: Number(jobId),
+        processId: Number(customAction.processId),
+        processSeq: insertSeq,
+        isOutsource: customAction.isOutsource,
+        qcRequired: selected?.needQualityCheck === 1 ? '1' : '0',
+        insertReason: customAction.reason,
+        remark: customAction.reason,
+      });
+      toast.success('已插入临时工序');
+      resetCustomAction();
+      await reloadProcessState();
+    } catch (error: any) {
+      toast.error(error.message || '插入临时工序失败');
+    }
+  };
+
+  const handleSkipCurrentProcess = async () => {
+    if (!currentProcess) {
+      toast.warning('当前没有可跳过的工序');
+      return;
+    }
+    if (!customAction.reason.trim()) {
+      toast.warning('请填写跳过原因');
+      return;
+    }
+
+    try {
+      await jobProcessApi.skipProcess({
+        id: currentProcess.id,
+        skipReason: customAction.reason,
+        remark: customAction.reason,
+      });
+      toast.success('当前工序已跳过');
+      resetCustomAction();
+      await reloadProcessState();
+    } catch (error: any) {
+      toast.error(error.message || '跳过工序失败');
+    }
+  };
+
+  const handleInsertReworkProcess = async () => {
+    if (!jobId || !currentProcess) {
+      toast.warning('当前没有返修来源工序');
+      return;
+    }
+    if (!customAction.processId) {
+      toast.warning('请选择返修工序');
+      return;
+    }
+    if (!customAction.reason.trim()) {
+      toast.warning('请填写返修原因');
+      return;
+    }
+
+    const selected = processDefs.find((item) => String(item.id) === customAction.processId);
+
+    try {
+      await jobProcessApi.insertReworkProcess({
+        jobId: Number(jobId),
+        processId: Number(customAction.processId),
+        processSeq: currentProcess.processSeq + 1,
+        isOutsource: customAction.isOutsource,
+        qcRequired: selected?.needQualityCheck === 1 ? '1' : '0',
+        reworkSourceProcessId: currentProcess.id,
+        insertReason: customAction.reason,
+        remark: customAction.reason,
+      });
+      toast.success('已插入返修工序');
+      resetCustomAction();
+      await reloadProcessState();
+    } catch (error: any) {
+      toast.error(error.message || '插入返修工序失败');
+    }
   };
 
   const handleEmployeeChange = (employeeId: string) => {
@@ -287,19 +554,19 @@ export default function ProcessReportPage() {
 
     setSubmitting(true);
     try {
-      await jobProcessApi.updateProduceJobProcess({
-        id: currentProcess.id,
-        jobId: Number(jobId),
-        processId: currentProcess.processId,
-        processSeq: currentProcess.processSeq,
+      await reportLogApi.addProduceReportLog({
+        jobProcessId: currentProcess.id,
         employeeId: Number(form.employeeId),
         employeeName: form.employeeName,
-        inQty: inQtyNum,
-        outQty: outQtyNum,
+        operatorName: form.employeeName,
+        reportQty: inQtyNum,
+        completedQty: outQtyNum,
         defectQty: defectQtyNum,
         lossQty: lossQtyNum,
-        processStatus: 'WAIT_CHECK',
-        remark: form.remark,
+        reportType: currentProcess.isOutsource === '1' ? 'OUTSOURCE_RETURN' : 'WORKSHOP',
+        reportSource: 'PAPER_BATCH',
+        isOutsourced: currentProcess.isOutsource || '0',
+        remark: form.remark || `IN:${inQtyNum}; LOSS_EXCEED:${isLossExceed ? '1' : '0'}`,
       });
 
       if (defects.length > 0) {
@@ -326,6 +593,23 @@ export default function ProcessReportPage() {
       toast.error(error.message || t('page.jobProcessReport.submitFailed'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleBindMaterialConsume = async (consumeId: number) => {
+    if (!currentProcess) {
+      toast.warning('当前没有可绑定的工序');
+      return;
+    }
+    setBindingConsumeId(consumeId);
+    try {
+      await materialConsumeApi.bindProduceMaterialConsumeToJobProcess(consumeId, currentProcess.id);
+      toast.success('已绑定到当前工序');
+      await reloadMaterialConsumes();
+    } catch (error: any) {
+      toast.error(error?.message || '绑定用料失败');
+    } finally {
+      setBindingConsumeId(null);
     }
   };
 
@@ -637,6 +921,220 @@ export default function ProcessReportPage() {
           <div className="sticky top-20 rounded-xl bg-white p-4 shadow-sm">
             <h3 className="mb-3 font-semibold text-slate-800">{t('page.jobProcess.flowTitle')}</h3>
             <ProcessFlow jobId={Number(jobId)} />
+
+            <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+              <div className="mb-3">
+                <h4 className="font-semibold text-slate-800">执行用料与成本</h4>
+                <p className="mt-1 text-xs text-slate-500">
+                  当前聚合的是本工单{currentProcess ? ' / 当前工序' : ''}的执行用料记录，用于观察损耗、超领和成本偏差是否开始沉淀。
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="rounded-xl bg-white px-4 py-3">
+                  <p className="text-xs text-slate-400">实际领用数量</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatAmount(materialSummary.totalQty)}</p>
+                </div>
+                <div className="rounded-xl bg-white px-4 py-3">
+                  <p className="text-xs text-slate-400">实际成本</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatAmount(materialSummary.totalActualCost)}</p>
+                </div>
+                <div className="rounded-xl bg-white px-4 py-3">
+                  <p className="text-xs text-slate-400">理论成本</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{formatAmount(materialSummary.totalTheoreticalCost)}</p>
+                </div>
+                <div className="rounded-xl bg-white px-4 py-3">
+                  <p className="text-xs text-slate-400">成本偏差</p>
+                  <p className={`mt-1 text-lg font-semibold ${materialSummary.totalCostDiff > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {formatAmount(materialSummary.totalCostDiff)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3">
+                  <p className="text-xs text-slate-400">累计实际损耗</p>
+                  <p className="mt-1 text-base font-semibold text-slate-900">{formatAmount(materialSummary.totalActualLoss)}</p>
+                </div>
+                <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3">
+                  <p className="text-xs text-slate-400">超限记录</p>
+                  <p className={`mt-1 text-base font-semibold ${materialSummary.overLimitCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                    {materialSummary.overLimitCount}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3">
+                  <p className="text-xs text-slate-400">待审批</p>
+                  <p className={`mt-1 text-base font-semibold ${materialSummary.pendingApprovalCount > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+                    {materialSummary.pendingApprovalCount}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-xl bg-white px-4 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs text-slate-400">最近用料明细</p>
+                  {materialLoading ? <span className="text-xs text-slate-400">加载中...</span> : null}
+                </div>
+                {materialConsumes.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    当前还没有关联到执行用料记录。下一步应把领料/补料/超领审批与报工事件继续绑定。
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {materialConsumes.slice(0, 5).map((item) => (
+                      <div key={item.id} className="rounded-lg border border-slate-100 px-3 py-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-800">
+                              {item.materialCode || '-'} {item.materialName || ''}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {item.materialType || 'UNKNOWN'}
+                              {item.batchNo ? ` / 批次 ${item.batchNo}` : ''}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-slate-900">
+                              {formatAmount(Number(item.actualQty || 0))}{item.unit ? ` ${item.unit}` : ''}
+                            </p>
+                            <p className={`mt-1 text-xs ${Number(item.costDiff || 0) > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                              偏差 {formatAmount(Number(item.costDiff || 0))}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {pendingMaterialConsumes.length > 0 ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-medium text-amber-700">待归属用料</p>
+                    <span className="text-xs text-amber-600">{pendingMaterialConsumes.length} 条</span>
+                  </div>
+                  <div className="space-y-2">
+                    {pendingMaterialConsumes.slice(0, 5).map((item) => (
+                      <div key={item.id} className="rounded-lg bg-white px-3 py-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-800">
+                              {item.materialCode || '-'} {item.materialName || ''}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {item.materialType || 'UNKNOWN'} / 数量 {formatAmount(Number(item.actualQty || 0))}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleBindMaterialConsume(item.id)}
+                            disabled={bindingConsumeId === item.id}
+                            className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {bindingConsumeId === item.id ? '绑定中...' : '绑定当前工序'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+              <div className="mb-3">
+                <h4 className="font-semibold text-slate-800">现场工序调整</h4>
+                <p className="mt-1 text-xs text-slate-500">
+                  用于临时插入照灯/灯检、印花、绣花、检品公司、返修等节点；所有调整都会写入工单工序快照。
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-xs text-slate-600">
+                  工序
+                  <select
+                    value={customAction.processId}
+                    onChange={(event) => {
+                      const selected = processDefs.find((item) => String(item.id) === event.target.value);
+                      setCustomAction((prev) => ({
+                        ...prev,
+                        processId: event.target.value,
+                        isOutsource: selected?.enableOutsource === 1 ? '1' : prev.isOutsource,
+                      }));
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
+                  >
+                    <option value="">请选择要插入的工序</option>
+                    {processDefs.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.processCode ? `${item.processCode} ` : ''}{item.processName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs text-slate-600">
+                    插入序号
+                    <input
+                      type="number"
+                      value={customAction.processSeq}
+                      onChange={(event) => setCustomAction((prev) => ({ ...prev, processSeq: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
+                      placeholder={currentProcess ? String(currentProcess.processSeq) : '末尾'}
+                    />
+                  </label>
+                  <label className="block text-xs text-slate-600">
+                    是否外协
+                    <select
+                      value={customAction.isOutsource}
+                      onChange={(event) => setCustomAction((prev) => ({ ...prev, isOutsource: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
+                    >
+                      <option value="0">本厂</option>
+                      <option value="1">外协</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label className="block text-xs text-slate-600">
+                  原因
+                  <textarea
+                    value={customAction.reason}
+                    onChange={(event) => setCustomAction((prev) => ({ ...prev, reason: event.target.value }))}
+                    className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
+                    placeholder="例如：日单要求灯检；客户追加绣花；质检不合格返修；该工序无需执行。"
+                  />
+                </label>
+
+                <div className="grid gap-2">
+                  <button
+                    type="button"
+                    onClick={handleInsertCustomProcess}
+                    className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-700"
+                  >
+                    插入临时工序
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleInsertReworkProcess}
+                    disabled={!currentProcess}
+                    className="rounded-lg bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    插入返修工序
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSkipCurrentProcess}
+                    disabled={!currentProcess}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    跳过当前工序
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

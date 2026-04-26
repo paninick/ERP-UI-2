@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface FieldConfig {
   name: string;
@@ -8,6 +9,8 @@ interface FieldConfig {
   getOptions?: () => { value: string; label: string }[];
   loadOptions?: () => Promise<{ value: string; label: string }[]>;
   required?: boolean;
+  /** 字段值变化时的回调。setForm 可传入清空子级。 */
+  onFieldChange?: (name: string, value: string, setForm: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => void;
 }
 
 interface GenericFormProps {
@@ -25,6 +28,7 @@ function normalizeValue(fieldType: FieldConfig['type'], value: string) {
 }
 
 export default function GenericForm({ fields, initialValues, onSubmit, onCancel }: GenericFormProps) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [asyncOptions, setAsyncOptions] = useState<Record<string, { value: string; label: string }[]>>({});
@@ -37,12 +41,29 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
     setForm(nextForm);
   }, [initialValues, fields]);
 
+  // Sync cascade state from initialValues for edit backfill
+  const cascadeInitRef = useRef<any>(null);
+  useEffect(() => {
+    if (!initialValues || cascadeInitRef.current === initialValues) return;
+    cascadeInitRef.current = initialValues;
+    fields.forEach((field) => {
+      if (field.onFieldChange) {
+        const val = initialValues[field.name];
+        if (val != null && val !== '') {
+          field.onFieldChange(field.name, String(val), setForm);
+        }
+      }
+    });
+  }, [initialValues, fields]);
+
   useEffect(() => {
     fields.forEach((field) => {
       if (field.loadOptions) {
-        field.loadOptions().then((opts) => {
-          setAsyncOptions((prev) => ({ ...prev, [field.name]: opts }));
-        }).catch(() => {});
+        field.loadOptions()
+          .then((opts) => {
+            setAsyncOptions((prev) => ({ ...prev, [field.name]: opts }));
+          })
+          .catch(() => {});
       }
     });
   }, [fields]);
@@ -51,7 +72,7 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
     event.preventDefault();
     for (const field of fields) {
       if (field.required && !form[field.name]?.trim()) {
-        alert(`${field.label} 不能为空`);
+        alert(t('common.requiredField', { field: field.label }));
         return;
       }
     }
@@ -83,11 +104,18 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
             {field.type === 'select' ? (
               <select
                 value={form[field.name] || ''}
-                onChange={(event) => setForm((prev) => ({ ...prev, [field.name]: event.target.value }))}
+                onChange={(event) => {
+                  const val = event.target.value;
+                  if (field.onFieldChange) {
+                    field.onFieldChange(field.name, val, setForm);
+                  } else {
+                    setForm((prev) => ({ ...prev, [field.name]: val }));
+                  }
+                }}
                 aria-label={field.label}
                 className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
               >
-                <option value="">请选择</option>
+                <option value="">{t('common.pleaseSelect')}</option>
                 {selectOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -97,7 +125,14 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
             ) : field.type === 'textarea' ? (
               <textarea
                 value={form[field.name] || ''}
-                onChange={(event) => setForm((prev) => ({ ...prev, [field.name]: event.target.value }))}
+                onChange={(event) => {
+                  const val = event.target.value;
+                  if (field.onFieldChange) {
+                    field.onFieldChange(field.name, val, setForm);
+                  } else {
+                    setForm((prev) => ({ ...prev, [field.name]: val }));
+                  }
+                }}
                 aria-label={field.label}
                 className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
               />
@@ -105,7 +140,14 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
               <input
                 type={field.type || 'text'}
                 value={form[field.name] || ''}
-                onChange={(event) => setForm((prev) => ({ ...prev, [field.name]: event.target.value }))}
+                onChange={(event) => {
+                  const val = event.target.value;
+                  if (field.onFieldChange) {
+                    field.onFieldChange(field.name, val, setForm);
+                  } else {
+                    setForm((prev) => ({ ...prev, [field.name]: val }));
+                  }
+                }}
                 aria-label={field.label}
                 className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
               />
@@ -119,14 +161,14 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
           onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
           disabled={loading}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? '提交中...' : '确定'}
+          {loading ? t('common.submitting') : t('common.confirm')}
         </button>
       </div>
     </form>

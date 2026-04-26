@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
 import * as invoiceApi from '@/api/invoice';
@@ -12,51 +13,52 @@ const api = {
 };
 
 export default function InvoicePage() {
+  const { t } = useTranslation();
   const confirmStatus = useDictOptions('erp_confirm_status', [
-    { value: '0', label: '待开票' },
-    { value: '1', label: '已开票' },
-    { value: '2', label: '已作废' },
+    { value: '0', label: t('page.invoice.status.pending') },
+    { value: '1', label: t('page.invoice.status.invoiced') },
+    { value: '2', label: t('page.invoice.status.received') },
   ]);
 
   const columns = [
-    { key: 'invoiceNo', title: '发票号' },
-    { key: 'customerName', title: '客户' },
-    { key: 'salesNo', title: '关联订单' },
-    { key: 'amount', title: '金额', render: (v: number) => (v != null ? `¥${v.toFixed(2)}` : '-') },
-    { key: 'taxAmount', title: '税额', render: (v: number) => (v != null ? `¥${v.toFixed(2)}` : '-') },
-    { key: 'totalAmount', title: '价税合计', render: (v: number) => (v != null ? `¥${v.toFixed(2)}` : '-') },
-    { key: 'invoiceDate', title: '开票日期' },
+    { key: 'invoiceNo', title: t('page.invoice.columns.invoiceNo') },
+    { key: 'customerName', title: t('page.invoice.columns.customerName') },
+    { key: 'salesNo', title: t('page.invoice.columns.salesNo') },
+    { key: 'amount', title: t('page.invoice.columns.amount'), render: (value: number) => (value != null ? `CNY ${value.toFixed(2)}` : '-') },
+    { key: 'taxAmount', title: t('page.invoice.columns.taxAmount'), render: (value: number) => (value != null ? `CNY ${value.toFixed(2)}` : '-') },
+    { key: 'totalAmount', title: t('page.invoice.columns.totalAmount'), render: (value: number) => (value != null ? `CNY ${value.toFixed(2)}` : '-') },
+    { key: 'invoiceDate', title: t('page.invoice.columns.invoiceDate') },
     {
       key: 'status',
-      title: '状态',
-      render: (v: string) => {
-        const tag = confirmStatus.toTag(v, 'bg-slate-100 text-slate-600');
+      title: t('page.invoice.columns.status'),
+      render: (value: string) => {
+        const tag = confirmStatus.toTag(value, 'bg-slate-100 text-slate-600');
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
       },
     },
   ];
 
   const searchFields = [
-    { name: 'invoiceNo', label: '发票号' },
-    { name: 'customerName', label: '客户' },
-    { name: 'status', label: '状态', type: 'select' as const, options: confirmStatus.options },
+    { name: 'invoiceNo', label: t('page.invoice.columns.invoiceNo') },
+    { name: 'customerName', label: t('page.invoice.columns.customerName') },
+    { name: 'status', label: t('page.invoice.columns.status'), type: 'select' as const, options: confirmStatus.options },
   ];
 
   const formFields = [
-    { name: 'invoiceNo', label: '发票号', required: true },
-    { name: 'customerName', label: '客户' },
-    { name: 'salesNo', label: '关联订单' },
-    { name: 'amount', label: '金额', type: 'number' as const },
-    { name: 'taxAmount', label: '税额', type: 'number' as const },
-    { name: 'totalAmount', label: '价税合计', type: 'number' as const },
-    { name: 'invoiceDate', label: '开票日期', type: 'date' as const },
-    { name: 'status', label: '状态', type: 'select' as const, options: confirmStatus.options },
-    { name: 'remark', label: '备注', type: 'textarea' as const },
+    { name: 'invoiceNo', label: t('page.invoice.columns.invoiceNo'), required: true },
+    { name: 'customerName', label: t('page.invoice.columns.customerName') },
+    { name: 'salesNo', label: t('page.invoice.columns.salesNo') },
+    { name: 'amount', label: t('page.invoice.columns.amount'), type: 'number' as const },
+    { name: 'taxAmount', label: t('page.invoice.columns.taxAmount'), type: 'number' as const },
+    { name: 'totalAmount', label: t('page.invoice.columns.totalAmount'), type: 'number' as const },
+    { name: 'invoiceDate', label: t('page.invoice.columns.invoiceDate'), type: 'date' as const },
+    { name: 'status', label: t('page.invoice.columns.status'), type: 'select' as const, options: confirmStatus.options },
+    { name: 'remark', label: t('page.invoice.columns.remark'), type: 'textarea' as const },
   ];
 
   return (
     <CrudPage
-      title="财务发票"
+      title={t('page.invoice.title')}
       api={api}
       columns={columns}
       searchFields={searchFields}

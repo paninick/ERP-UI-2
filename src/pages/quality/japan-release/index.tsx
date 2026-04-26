@@ -19,5 +19,5 @@ export default function JapanReleasePage() {
     { name: 'bookingNo', label: t('japan.bookingNo') },
     { name: 'status', label: t('japan.status') },
   ];
-  return <CrudPage title={t('japan.title')} api={pageApi} columns={columns} searchFields={searchFields} canAdd={false} canEdit={false} />;
+  return <CrudPage title={t('japan.title')} api={pageApi} columns={columns} searchFields={searchFields} />;
 }

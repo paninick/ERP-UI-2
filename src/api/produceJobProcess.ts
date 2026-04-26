@@ -20,6 +20,18 @@ export function addProduceJobProcess(data: any) {
   return client.post('/erp/produceJobProcess', data);
 }
 
+export function insertCustomProcess(data: any) {
+  return client.post('/erp/produceJobProcess/insertCustom', data);
+}
+
+export function skipProcess(data: any) {
+  return client.put('/erp/produceJobProcess/skip', data);
+}
+
+export function insertReworkProcess(data: any) {
+  return client.post('/erp/produceJobProcess/insertRework', data);
+}
+
 export function updateProduceJobProcess(data: any) {
   return client.put('/erp/produceJobProcess', data);
 }

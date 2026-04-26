@@ -27,6 +27,7 @@ const PiecewagePage = lazy(() => import('@/pages/piecewage/index'));
 const InvoicePage = lazy(() => import('@/pages/finance/invoice/index'));
 const WarehousePage = lazy(() => import('@/pages/warehouse/index'));
 const EmployeePage = lazy(() => import('@/pages/employee/index'));
+const ProcessDefPage = lazy(() => import('@/pages/production/process-def/index'));
 const ProcessRoutePage = lazy(() => import('@/pages/production/process/index'));
 const NoticePage = lazy(() => import('@/pages/production/notice/index'));
 const NoticeDetailPage = lazy(() => import('@/pages/production/notice/detail'));
@@ -41,8 +42,14 @@ const SystemUserPage = lazy(() => import('@/pages/system/user/index'));
 const SystemRolePage = lazy(() => import('@/pages/system/role/index'));
 const SystemDictPage = lazy(() => import('@/pages/system/dict/index'));
 const SystemDictDataPage = lazy(() => import('@/pages/system/dict/data'));
+const SystemOrgPage = lazy(() => import('@/pages/system/org/index'));
 const ProductionGanttPage = lazy(() => import('@/pages/production/gantt/index'));
 const BizAbnormalPage = lazy(() => import('@/pages/biz/abnormal/index'));
+const StylePage = lazy(() => import('@/pages/style/index'));
+const InspectionBookingPage = lazy(() => import('@/pages/quality/inspection-booking/index'));
+const JapanReleasePage = lazy(() => import('@/pages/quality/japan-release/index'));
+const ApprovalLogPage = lazy(() => import('@/pages/system/approvallog/index'));
+const ShipmentPage = lazy(() => import('@/pages/inventory/shipment/index'));
 
 function ProtectedRoute({children}: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -93,6 +100,7 @@ export const router = createBrowserRouter([
       {path: 'production/job', element: lazyPage(<ProduceJobPage />)},
       {path: 'production/job/print/:id', element: lazyPage(<ProduceJobPrintPage />)},
       {path: 'production/gantt', element: lazyPage(<ProductionGanttPage />)},
+      {path: 'production/process-def', element: lazyPage(<ProcessDefPage />)},
       {path: 'production/process', element: lazyPage(<ProcessRoutePage />)},
       {path: 'production/notice', element: lazyPage(<NoticePage />)},
       {path: 'production/notice/:id', element: lazyPage(<NoticeDetailPage />)},
@@ -127,8 +135,15 @@ export const router = createBrowserRouter([
       {path: 'system/role', element: lazyPage(<SystemRolePage />)},
       {path: 'system/dict', element: lazyPage(<SystemDictPage />)},
       {path: 'system/dict-data/:dictId', element: lazyPage(<SystemDictDataPage />)},
+      {path: 'system/org', element: lazyPage(<SystemOrgPage />)},
 
       {path: 'biz/abnormal', element: lazyPage(<BizAbnormalPage />)},
+
+      {path: 'style', element: lazyPage(<StylePage />)},
+      {path: 'quality/inspection-booking', element: lazyPage(<InspectionBookingPage />)},
+      {path: 'quality/japan-release', element: lazyPage(<JapanReleasePage />)},
+      {path: 'system/approvallog', element: lazyPage(<ApprovalLogPage />)},
+      {path: 'inventory/shipment', element: lazyPage(<ShipmentPage />)},
     ],
   },
 ]);

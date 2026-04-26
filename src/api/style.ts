@@ -1,23 +1,9 @@
-import request from '@/utils/request';
+import client from './client';
 
 const BASE = '/erp/style';
 
-export function listStyle(params?: any) {
-  return request({ url: BASE + '/list', method: 'get', params });
-}
-
-export function getStyle(id: number) {
-  return request({ url: BASE + '/' + id, method: 'get' });
-}
-
-export function addStyle(data: any) {
-  return request({ url: BASE, method: 'post', data });
-}
-
-export function updateStyle(data: any) {
-  return request({ url: BASE, method: 'put', data });
-}
-
-export function delStyle(ids: string) {
-  return request({ url: BASE + '/' + ids, method: 'delete' });
-}
+export function listStyle(params?: any) { return client.get(BASE + '/list', { params }); }
+export function getStyle(id: number) { return client.get(BASE + '/' + id); }
+export function addStyle(data: any) { return client.post(BASE, data); }
+export function updateStyle(data: any) { return client.put(BASE, data); }
+export function delStyle(ids: string) { return client.delete(BASE + '/' + ids); }

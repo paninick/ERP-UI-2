@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as processRouteApi from '@/api/processRoute';
 import * as productionApi from '@/api/production';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
@@ -35,16 +36,17 @@ function buildJobNo() {
 }
 
 export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<ProducePlanOption[]>([]);
   const [routes, setRoutes] = useState<ProcessRouteOption[]>([]);
   const [form, setForm] = useState<Record<string, string>>({});
 
   const planStatus = useDictOptions('erp_plan_status', [
-    { value: '0', label: '待生产' },
-    { value: '1', label: '生产中' },
-    { value: '2', label: '已完成' },
-    { value: '3', label: '已取消' },
+    { value: '0', label: t('page.job.form.status.pending') },
+    { value: '1', label: t('page.job.form.status.running') },
+    { value: '2', label: t('page.job.form.status.completed') },
+    { value: '3', label: t('page.job.form.status.cancelled') },
   ]);
 
   useEffect(() => {
@@ -131,17 +133,17 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
     event.preventDefault();
 
     if (!form.producePlanId) {
-      toast.error('请先选择生产计划，再创建生产工单。');
+      toast.error(t('page.job.form.toasts.selectPlan'));
       return;
     }
 
     if (!form.styleCode || !form.planQty) {
-      toast.error('生产计划未带出款号或数量，请先检查计划数据。');
+      toast.error(t('page.job.form.toasts.invalidPlan'));
       return;
     }
 
     if (!form.processRouteId) {
-      toast.error('请为工单选择工艺路线。');
+      toast.error(t('page.job.form.toasts.selectRoute'));
       return;
     }
 
@@ -177,34 +179,34 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        工单应从生产计划派生。销售来源、款号和计划数量由计划带出，现场不再重复维护。
+        {t('page.job.form.banner')}
       </div>
 
       <DocumentCodeBoard
-        title="工单打印规则"
-        description="车间流转卡和报工界面应以工单号为主，计划号和销售号只作为追溯辅助字段。"
+        title={t('page.job.form.codeBoard.title')}
+        description={t('page.job.form.codeBoard.description')}
         items={[
           {
-            label: '工单主号',
+            label: t('page.job.form.codeBoard.items.jobNo.label'),
             value: form.jobNo,
-            helper: '现场报工、质检、流转卡建议用这个主号。',
+            helper: t('page.job.form.codeBoard.items.jobNo.helper'),
             tone: 'primary',
           },
           {
-            label: '计划来源号',
+            label: t('page.job.form.codeBoard.items.planNo.label'),
             value: selectedPlan?.planNo,
-            helper: '用于追溯该工单来自哪张生产计划。',
+            helper: t('page.job.form.codeBoard.items.planNo.helper'),
             tone: 'secondary',
           },
           {
-            label: '销售来源号',
+            label: t('page.job.form.codeBoard.items.salesNo.label'),
             value: form.salesNo,
-            helper: '客户交期、业务追单时使用。',
+            helper: t('page.job.form.codeBoard.items.salesNo.helper'),
           },
           {
-            label: '款号 / 数量',
+            label: t('page.job.form.codeBoard.items.styleQty.label'),
             value: form.styleCode ? `${form.styleCode}${form.planQty ? ` / ${form.planQty}` : ''}` : '',
-            helper: '打印时作为辅助字段，不替代工单主号。',
+            helper: t('page.job.form.codeBoard.items.styleQty.helper'),
           },
         ]}
       />
@@ -212,29 +214,29 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">
           <span className="mr-1 text-red-500">*</span>
-          工单编号
+          {t('page.job.columns.jobNo')}
         </label>
         <input
           value={form.jobNo || ''}
           onChange={(event) => updateField('jobNo', event.target.value)}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="工单编号"
+          aria-label={t('page.job.columns.jobNo')}
         />
       </div>
 
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">
           <span className="mr-1 text-red-500">*</span>
-          生产计划
+          {t('page.job.form.producePlan')}
         </label>
         <select
           value={form.producePlanId || ''}
           onChange={(event) => updateField('producePlanId', event.target.value)}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="生产计划"
+          aria-label={t('page.job.form.producePlan')}
           disabled={Boolean(initialValues?.id)}
         >
-          <option value="">请选择生产计划</option>
+          <option value="">{t('page.job.form.selectPlan')}</option>
           {plans.map((item) => (
             <option key={item.id} value={item.id}>
               {item.planNo || item.id}
@@ -245,24 +247,24 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
         </select>
       </div>
 
-      <ReadonlyField label="销售单号" value={form.salesNo} />
-      <ReadonlyField label="款号" value={form.styleCode} />
-      <ReadonlyField label="颜色" value={form.colorCode} />
-      <ReadonlyField label="尺码" value={form.sizeCode} />
-      <ReadonlyField label="计划数量" value={form.planQty} />
+      <ReadonlyField label={t('page.job.columns.salesNo')} value={form.salesNo} />
+      <ReadonlyField label={t('page.job.columns.styleCode')} value={form.styleCode} />
+      <ReadonlyField label={t('page.job.columns.colorCode')} value={form.colorCode} />
+      <ReadonlyField label={t('page.job.columns.sizeCode')} value={form.sizeCode} />
+      <ReadonlyField label={t('page.job.columns.planQty')} value={form.planQty} />
 
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">
           <span className="mr-1 text-red-500">*</span>
-          工艺路线
+          {t('page.job.form.processRoute')}
         </label>
         <select
           value={form.processRouteId || ''}
           onChange={(event) => updateField('processRouteId', event.target.value)}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="工艺路线"
+          aria-label={t('page.job.form.processRoute')}
         >
-          <option value="">请选择工艺路线</option>
+          <option value="">{t('page.job.form.selectRoute')}</option>
           {filteredRoutes.map((item) => (
             <option key={item.id} value={item.id}>
               {item.routeName}
@@ -273,12 +275,12 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
       </div>
 
       <div className="flex items-center gap-3">
-        <label className="w-28 shrink-0 text-right text-sm text-slate-600">状态</label>
+        <label className="w-28 shrink-0 text-right text-sm text-slate-600">{t('page.job.columns.status')}</label>
         <select
           value={form.status || ''}
           onChange={(event) => updateField('status', event.target.value)}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="状态"
+          aria-label={t('page.job.columns.status')}
         >
           {planStatus.options
             .filter((item) => item.value !== '2')
@@ -291,12 +293,12 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
       </div>
 
       <div className="flex items-start gap-3">
-        <label className="w-28 shrink-0 pt-2 text-right text-sm text-slate-600">备注</label>
+        <label className="w-28 shrink-0 pt-2 text-right text-sm text-slate-600">{t('common.remark')}</label>
         <textarea
           value={form.remark || ''}
           onChange={(event) => updateField('remark', event.target.value)}
           className="h-24 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-          aria-label="备注"
+          aria-label={t('common.remark')}
         />
       </div>
 
@@ -306,14 +308,14 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
           onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
           disabled={loading}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? '提交中...' : '确定'}
+          {loading ? t('common.submitting') : t('common.confirm')}
         </button>
       </div>
     </form>

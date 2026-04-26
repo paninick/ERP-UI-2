@@ -19,3 +19,11 @@ export function updateEmployee(data: any) {
 export function delEmployee(ids: string) {
   return client.delete(`/erp/employee/${ids}`);
 }
+
+export function listEmployeeDeptOptions() {
+  return client.get('/erp/employee/deptOptions');
+}
+
+export function listEmployeePostOptions() {
+  return client.get('/erp/employee/postOptions');
+}

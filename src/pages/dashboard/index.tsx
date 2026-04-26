@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ArrowRight, ClipboardCheck, Factory, Package, ShoppingCart, Truck, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import * as customerApi from '@/api/customer';
 import * as inventoryApi from '@/api/inventory';
 import * as productionApi from '@/api/production';
@@ -8,11 +9,12 @@ import * as salesApi from '@/api/sales';
 import { useDictOptions } from '@/hooks/useDictOptions';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const salesOrderStatus = useDictOptions('sales_order_status');
   const planStatus = useDictOptions('erp_plan_status', [
-    { value: '0', label: '待生产' },
-    { value: '1', label: '生产中' },
-    { value: '2', label: '已完成' },
+    { value: '0', label: t('page.dashboard.planStatus.pending') },
+    { value: '1', label: t('page.dashboard.planStatus.running') },
+    { value: '2', label: t('page.dashboard.planStatus.completed') },
   ]);
 
   const [stats, setStats] = useState({
@@ -65,15 +67,15 @@ export default function Dashboard() {
   }, []);
 
   const cards = [
-    { label: '销售订单', value: stats.salesCount, icon: ShoppingCart, color: 'bg-indigo-500', link: '/sales/order' },
-    { label: '客户总数', value: stats.customerCount, icon: Users, color: 'bg-blue-500', link: '/customer' },
-    { label: '生产工单', value: stats.jobCount, icon: Factory, color: 'bg-emerald-500', link: '/production/job' },
-    { label: '库存物料', value: stats.inventoryCount, icon: Package, color: 'bg-amber-500', link: '/inventory/list' },
+    { label: t('page.dashboard.cards.salesCount'), value: stats.salesCount, icon: ShoppingCart, color: 'bg-indigo-500', link: '/sales/order' },
+    { label: t('page.dashboard.cards.customerCount'), value: stats.customerCount, icon: Users, color: 'bg-blue-500', link: '/customer' },
+    { label: t('page.dashboard.cards.jobCount'), value: stats.jobCount, icon: Factory, color: 'bg-emerald-500', link: '/production/job' },
+    { label: t('page.dashboard.cards.inventoryCount'), value: stats.inventoryCount, icon: Package, color: 'bg-amber-500', link: '/inventory/list' },
   ];
 
   return (
     <div>
-      <h2 className="mb-6 text-2xl font-bold text-slate-800">工作台</h2>
+      <h2 className="mb-6 text-2xl font-bold text-slate-800">{t('page.dashboard.title')}</h2>
 
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
@@ -97,13 +99,13 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-800">最近销售订单</h3>
+            <h3 className="text-lg font-semibold text-slate-800">{t('page.dashboard.recentSales')}</h3>
             <NavLink to="/sales/order" className="text-sm text-indigo-600 hover:text-indigo-700">
-              查看全部
+              {t('page.dashboard.viewAll')}
             </NavLink>
           </div>
           {recentSales.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-400">暂无数据</p>
+            <p className="py-8 text-center text-sm text-slate-400">{t('page.dashboard.empty')}</p>
           ) : (
             <div className="space-y-2">
               {recentSales.map((item) => {
@@ -124,13 +126,13 @@ export default function Dashboard() {
 
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-800">最近生产工单</h3>
+            <h3 className="text-lg font-semibold text-slate-800">{t('page.dashboard.recentJobs')}</h3>
             <NavLink to="/production/job" className="text-sm text-indigo-600 hover:text-indigo-700">
-              查看全部
+              {t('page.dashboard.viewAll')}
             </NavLink>
           </div>
           {recentJobs.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-400">暂无数据</p>
+            <p className="py-8 text-center text-sm text-slate-400">{t('page.dashboard.empty')}</p>
           ) : (
             <div className="space-y-2">
               {recentJobs.map((item) => {
@@ -140,7 +142,10 @@ export default function Dashboard() {
                     <div>
                       <p className="text-sm font-medium text-slate-700">{item.jobNo}</p>
                       <p className="text-xs text-slate-400">
-                        {item.styleCode} · 计划 {item.planQty}
+                        {t('page.dashboard.jobSummary', {
+                          styleCode: item.styleCode || '-',
+                          qty: item.planQty ?? '-',
+                        })}
                       </p>
                     </div>
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>
@@ -154,10 +159,10 @@ export default function Dashboard() {
 
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          { label: '新增销售订单', path: '/sales/order', icon: ShoppingCart, color: 'text-indigo-600 bg-indigo-50' },
-          { label: '新增生产工单', path: '/production/job', icon: Factory, color: 'text-emerald-600 bg-emerald-50' },
-          { label: '入库登记', path: '/inventory/stock-in', icon: Truck, color: 'text-amber-600 bg-amber-50' },
-          { label: '品质检验', path: '/quality', icon: ClipboardCheck, color: 'text-blue-600 bg-blue-50' },
+          { label: t('page.dashboard.quickActions.addSales'), path: '/sales/order', icon: ShoppingCart, color: 'text-indigo-600 bg-indigo-50' },
+          { label: t('page.dashboard.quickActions.addJob'), path: '/production/job', icon: Factory, color: 'text-emerald-600 bg-emerald-50' },
+          { label: t('page.dashboard.quickActions.stockIn'), path: '/inventory/stock-in', icon: Truck, color: 'text-amber-600 bg-amber-50' },
+          { label: t('page.dashboard.quickActions.qualityCheck'), path: '/quality', icon: ClipboardCheck, color: 'text-blue-600 bg-blue-50' },
         ].map((item) => (
           <NavLink
             key={item.path}

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, RotateCcw, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import * as approvalApi from '@/api/approval';
 import * as bomApi from '@/api/bom';
+import ApprovalTimeline from '@/components/business/ApprovalTimeline';
 import { toast } from '@/components/ui/Toast';
 import { createRowId, readDraft, writeDraft } from '@/utils/detailDraft';
 
@@ -77,6 +79,8 @@ export default function BomDetailPage() {
   const [saving, setSaving] = useState(false);
   const [record, setRecord] = useState<any>(null);
   const [draft, setDraft] = useState<BomDetailDraft | null>(null);
+  const [approvalLogs, setApprovalLogs] = useState<any[]>([]);
+  const [approvalLoading, setApprovalLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +95,22 @@ export default function BomDetailPage() {
         }
         setRecord(nextRecord);
         setDraft(readDraft('bom-detail', id, defaultDraft(nextRecord)));
+
+        if (id !== 'new') {
+          setApprovalLoading(true);
+          const approvalRes: any = await approvalApi.listApprovalLog({
+            businessType: 'BOM',
+            businessId: Number(id),
+            pageNum: 1,
+            pageSize: 50,
+          }).catch(() => null);
+          if (mounted) {
+            setApprovalLogs(approvalRes?.rows || []);
+          }
+          if (mounted) {
+            setApprovalLoading(false);
+          }
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -292,6 +312,8 @@ export default function BomDetailPage() {
           </div>
         </div>
       </section>
+
+      <ApprovalTimeline title="BOM 审批记录" logs={approvalLogs} loading={approvalLoading} />
 
       <section className="rounded-3xl bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">

@@ -1,4 +1,5 @@
-import {useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
 import * as dictApi from '@/api/dict';
@@ -11,56 +12,57 @@ const api = {
   remove: dictApi.delDictType,
 };
 
-const STATUS_OPTIONS = [
-  {value: '0', label: '正常'},
-  {value: '1', label: '停用'},
-];
-
-const columns = [
-  {key: 'dictId', title: '字典编号', width: '100px'},
-  {key: 'dictName', title: '字典名称'},
-  {key: 'dictType', title: '字典类型'},
-  {
-    key: 'status',
-    title: '状态',
-    render: (value: string) => {
-      const ok = value === '0';
-      return (
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ok ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-          {ok ? '正常' : '停用'}
-        </span>
-      );
-    },
-  },
-  {key: 'remark', title: '备注'},
-  {key: 'createTime', title: '创建时间'},
-];
-
-const searchFields = [
-  {name: 'dictName', label: '字典名称'},
-  {name: 'dictType', label: '字典类型'},
-  {
-    name: 'status',
-    label: '状态',
-    type: 'select' as const,
-    options: STATUS_OPTIONS,
-  },
-];
-
-const formFields = [
-  {name: 'dictName', label: '字典名称', required: true},
-  {name: 'dictType', label: '字典类型', required: true},
-  {
-    name: 'status',
-    label: '状态',
-    type: 'select' as const,
-    options: STATUS_OPTIONS,
-  },
-  {name: 'remark', label: '备注', type: 'textarea' as const},
-];
-
 export default function SystemDictPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const statusOptions = [
+    { value: '0', label: '正常' },
+    { value: '1', label: '停用' },
+  ];
+
+  const columns = [
+    { key: 'dictId', title: '字典编号', width: '100px' },
+    { key: 'dictName', title: '字典名称' },
+    { key: 'dictType', title: '字典类型' },
+    {
+      key: 'status',
+      title: '状态',
+      render: (value: string) => {
+        const isNormal = value === '0';
+        return (
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isNormal ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+            {isNormal ? '正常' : '停用'}
+          </span>
+        );
+      },
+    },
+    { key: 'remark', title: '备注' },
+    { key: 'createTime', title: '创建时间' },
+  ];
+
+  const searchFields = [
+    { name: 'dictName', label: '字典名称' },
+    { name: 'dictType', label: '字典类型' },
+    {
+      name: 'status',
+      label: '状态',
+      type: 'select' as const,
+      options: statusOptions,
+    },
+  ];
+
+  const formFields = [
+    { name: 'dictName', label: '字典名称', required: true },
+    { name: 'dictType', label: '字典类型', required: true },
+    {
+      name: 'status',
+      label: '状态',
+      type: 'select' as const,
+      options: statusOptions,
+    },
+    { name: 'remark', label: t('common.remark'), type: 'textarea' as const },
+  ];
 
   return (
     <CrudPage

@@ -34,6 +34,13 @@ function getIcon(status: string, isOutsource: string) {
   return STATUS_ICON_MAP[status] || Circle;
 }
 
+function normalizeProcessRows(response: any): ProcessStep[] {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.rows)) return response.rows;
+  if (Array.isArray(response?.data)) return response.data;
+  return [];
+}
+
 export default function ProcessFlow({jobId}: {jobId: number}) {
   const [steps, setSteps] = useState<ProcessStep[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +49,7 @@ export default function ProcessFlow({jobId}: {jobId: number}) {
   useEffect(() => {
     setLoading(true);
     jobProcessApi.listByJob(jobId).then((response: any) => {
-      const rows = response?.rows || response || [];
+      const rows = normalizeProcessRows(response);
       setSteps([...rows].sort((a: ProcessStep, b: ProcessStep) => a.processSeq - b.processSeq));
     }).catch(() => {
       setSteps([]);

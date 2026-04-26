@@ -2,14 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Eye, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import * as approvalApi from '@/api/approval';
 import * as defectApi from '@/api/defect';
 import * as jobProcessApi from '@/api/produceJobProcess';
+import ApprovalTimeline from '@/components/business/ApprovalTimeline';
 import BaseTable from '@/components/ui/BaseTable';
 import Pagination from '@/components/ui/Pagination';
 import SearchForm, { SearchField } from '@/components/ui/SearchForm';
 import { toast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useDictOptions } from '@/hooks/useDictOptions';
+import { buildApprovalLog } from '@/utils/approval';
 
 interface JobProcessRecord {
   id: number;
@@ -32,6 +35,8 @@ interface DefectRecord {
   defectCategory?: string;
   defectLevel?: string;
   defectQty?: number;
+  handleType?: string;
+  responsibility?: string;
   isBrokenNeedle?: string;
   remark?: string;
 }
@@ -57,8 +62,10 @@ export default function QualityInspectionPage() {
   const [selectedRecord, setSelectedRecord] = useState<JobProcessRecord | null>(null);
   const [defects, setDefects] = useState<DefectRecord[]>([]);
   const [rejectReason, setRejectReason] = useState('');
+  const [inspectionBookingNo, setInspectionBookingNo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [autoOpenedRecordId, setAutoOpenedRecordId] = useState('');
+  const [approvalLogs, setApprovalLogs] = useState<any[]>([]);
 
   const inspectorName = useMemo(
     () => user?.nickname || user?.username || t('page.qualityInspection.inspectorFallback'),
@@ -109,17 +116,88 @@ export default function QualityInspectionPage() {
 
   const handleViewDetail = useCallback(async (record: JobProcessRecord) => {
     setSelectedRecord(record);
-    setRejectReason('');
+    setRejectReason(record.rejectReason || '');
+    setInspectionBookingNo('');
     try {
       const response = await defectApi.listDefect({
         jobId: record.jobId,
         processId: record.processId,
       });
       setDefects((response as any).rows || []);
+      const approvalRes: any = await approvalApi.listApprovalLog({
+        businessType: 'QUALITY_INSPECTION',
+        businessId: record.id,
+        pageNum: 1,
+        pageSize: 50,
+      }).catch(() => null);
+      setApprovalLogs(approvalRes?.rows || []);
     } catch {
       setDefects([]);
+      setApprovalLogs([]);
     }
   }, []);
+
+  const refreshDialogData = async (record: JobProcessRecord) => {
+    await handleViewDetail(record);
+    await fetchData();
+  };
+
+  const handleInspectionBooking = async (record: JobProcessRecord) => {
+    const bookingNo = inspectionBookingNo.trim();
+    if (!bookingNo) {
+      toast.warning('请输入检品预约号');
+      return;
+    }
+
+    try {
+      await approvalApi.addApprovalLog(buildApprovalLog({
+        businessType: 'QUALITY_INSPECTION',
+        businessId: record.id,
+        businessNo: record.jobNo || String(record.jobId || ''),
+        nodeCode: 'INSPECTION_RELEASE',
+        actionType: 'SUBMIT',
+        fromStatus: String(record.processStatus || ''),
+        toStatus: 'BOOKED',
+        actionBy: inspectorName,
+        actionRemark: `检品预约号: ${bookingNo}`,
+      }));
+      toast.success('检品预约已记录');
+      await refreshDialogData(record);
+    } catch (error: any) {
+      toast.error(error.message || '检品预约记录失败');
+    }
+  };
+
+  const handleInspectionResult = async (result: 'PASS' | 'FAIL') => {
+    if (!selectedRecord) {
+      return;
+    }
+    if (result === 'FAIL' && !rejectReason.trim()) {
+      toast.warning('检品不通过时请填写原因');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await approvalApi.addApprovalLog(buildApprovalLog({
+        businessType: 'QUALITY_INSPECTION',
+        businessId: selectedRecord.id,
+        businessNo: selectedRecord.jobNo || String(selectedRecord.jobId || ''),
+        nodeCode: 'INSPECTION_RELEASE',
+        actionType: result === 'PASS' ? 'APPROVE' : 'REJECT',
+        fromStatus: String(selectedRecord.processStatus || ''),
+        toStatus: result === 'PASS' ? 'INSPECT_PASS' : 'INSPECT_FAIL',
+        actionBy: inspectorName,
+        actionRemark: result === 'PASS' ? '第三方检品通过' : rejectReason.trim(),
+      }));
+      toast.success(result === 'PASS' ? '检品通过已记录' : '检品不通过已记录');
+      await refreshDialogData(selectedRecord);
+    } catch (error: any) {
+      toast.error(error.message || '检品结果记录失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!recordId || autoOpenedRecordId === recordId) {
@@ -168,6 +246,17 @@ export default function QualityInspectionPage() {
         releaseBy: inspectorName,
         rejectReason: result === 'FAIL' ? rejectReason.trim() : undefined,
       });
+      await approvalApi.addApprovalLog(buildApprovalLog({
+        businessType: 'QUALITY_INSPECTION',
+        businessId: selectedRecord.id,
+        businessNo: selectedRecord.jobNo || String(selectedRecord.jobId || ''),
+        nodeCode: 'QUALITY_RELEASE',
+        actionType: result === 'PASS' ? 'APPROVE' : 'REJECT',
+        fromStatus: String(selectedRecord.processStatus || ''),
+        toStatus: result,
+        actionBy: inspectorName,
+        actionRemark: result === 'FAIL' ? rejectReason.trim() : '品质放行',
+      })).catch(() => null);
       toast.success(
         result === 'PASS'
           ? t('page.qualityInspection.toasts.passSuccess')
@@ -273,7 +362,7 @@ export default function QualityInspectionPage() {
 
       {selectedRecord && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
             <div className="border-b border-slate-200 px-6 py-4">
               <h3 className="text-lg font-semibold text-slate-800">{t('page.qualityInspection.dialogTitle')}</h3>
             </div>
@@ -296,10 +385,12 @@ export default function QualityInspectionPage() {
                   </p>
                   <div className="space-y-1">
                     {defects.map((defect, index) => (
-                      <div key={index} className="flex gap-2 text-xs text-red-600">
+                      <div key={index} className="flex flex-wrap gap-2 text-xs text-red-600">
                         <span>{defectCategory.labelMap[String(defect.defectCategory)] || defect.defectCategory}</span>
                         <span>{defectLevel.labelMap[String(defect.defectLevel)] || defect.defectLevel}</span>
                         <span>x{defect.defectQty}</span>
+                        {defect.handleType && <span>处理: {defect.handleType}</span>}
+                        {defect.responsibility && <span>责任: {defect.responsibility}</span>}
                         {defect.isBrokenNeedle === '1' && (
                           <span className="font-bold text-red-700">{t('page.qualityInspection.brokenNeedle')}</span>
                         )}
@@ -316,6 +407,42 @@ export default function QualityInspectionPage() {
                 </div>
               )}
 
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="mb-2 text-sm font-semibold text-slate-800">日单第三方检品</p>
+                <div className="flex gap-2">
+                  <input
+                    aria-label="检品预约号"
+                    value={inspectionBookingNo}
+                    onChange={(event) => setInspectionBookingNo(event.target.value)}
+                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                    placeholder="适用于日单第三方检品预约"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleInspectionBooking(selectedRecord)}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    预约
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInspectionResult('PASS')}
+                    disabled={submitting}
+                    className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                  >
+                    检品通过
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInspectionResult('FAIL')}
+                    disabled={submitting}
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    检品不通过
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="mb-1 block text-sm text-slate-600">{t('page.qualityInspection.rejectReasonLabel')}</label>
                 <textarea
@@ -326,6 +453,8 @@ export default function QualityInspectionPage() {
                   placeholder={t('page.qualityInspection.rejectReasonPlaceholder')}
                 />
               </div>
+
+              <ApprovalTimeline title="质检 / 检品记录" logs={approvalLogs} />
             </div>
 
             <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">

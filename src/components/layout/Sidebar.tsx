@@ -58,6 +58,7 @@ export default function Sidebar() {
         { key: 'productTrace', label: t('nav.productTrace'), path: '/production/product-trace' },
         { key: 'plan', label: t('nav.plan'), path: '/production/plan' },
         { key: 'job', label: t('nav.job'), path: '/production/job' },
+        { key: 'processDef', label: t('nav.processDef'), path: '/production/process-def' },
         { key: 'process', label: t('nav.process'), path: '/production/process' },
         { key: 'notice', label: t('nav.notice'), path: '/production/notice' },
         { key: 'gantt', label: t('nav.gantt'), path: '/production/gantt' },

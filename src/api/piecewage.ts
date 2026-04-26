@@ -19,3 +19,13 @@ export function updatePiecewage(data: any) {
 export function delPiecewage(ids: string) {
   return client.delete(`/erp/piecewage/${ids}`);
 }
+
+export function autoGeneratePiecewage(wageMonth: string) {
+  return client.post('/erp/piecewage/autoGenerate', null, {
+    params: { wageMonth },
+  });
+}
+
+export function listPiecewageDetailByWage(wageId: number) {
+  return client.get(`/erp/piecewagedetail/listByWage/${wageId}`);
+}

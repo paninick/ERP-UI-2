@@ -1,6 +1,6 @@
-import {ReactNode, useEffect} from 'react';
-import {AnimatePresence, motion} from 'framer-motion';
-import {X} from 'lucide-react';
+import { ReactNode, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
 
 interface BaseModalProps {
   open: boolean;
@@ -33,21 +33,21 @@ export default function BaseModal({
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <motion.div
-            initial={{opacity: 0}}
-            animate={{opacity: 1}}
-            exit={{opacity: 0}}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
-            initial={{opacity: 0, scale: 0.95, y: 20}}
-            animate={{opacity: 1, scale: 1, y: 0}}
-            exit={{opacity: 0, scale: 0.95, y: 20}}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative overflow-hidden rounded-2xl bg-white shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            style={{width, maxHeight: '85vh'}}
+            style={{ width, maxHeight: '85vh' }}
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
@@ -55,7 +55,7 @@ export default function BaseModal({
                 <X size={18} className="text-slate-500" />
               </button>
             </div>
-            <div className="overflow-y-auto px-6 py-4" style={{maxHeight: 'calc(85vh - 120px)'}}>
+            <div className="overflow-y-auto px-6 py-4" style={{ maxHeight: 'calc(85vh - 120px)' }}>
               {children}
             </div>
             {onOk && (

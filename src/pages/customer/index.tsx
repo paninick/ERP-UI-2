@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
 import * as customerApi from '@/api/customer';
@@ -10,36 +11,38 @@ const api = {
   remove: customerApi.delCustomer,
 };
 
-const columns = [
-  {key: 'customerNo', title: '客户编号'},
-  {key: 'customerName', title: '客户名称'},
-  {key: 'nationality', title: '国籍'},
-  {key: 'contacts', title: '联系人'},
-  {key: 'phone', title: '电话'},
-  {key: 'email', title: '邮箱'},
-  {key: 'createTime', title: '创建时间'},
-];
-
-const searchFields = [
-  {name: 'customerNo', label: '客户编号'},
-  {name: 'customerName', label: '客户名称'},
-];
-
-const formFields = [
-  {name: 'customerNo', label: '客户编号', required: true},
-  {name: 'customerName', label: '客户名称', required: true},
-  {name: 'nationality', label: '国籍'},
-  {name: 'contacts', label: '联系人'},
-  {name: 'phone', label: '电话'},
-  {name: 'email', label: '邮箱'},
-  {name: 'address', label: '地址'},
-  {name: 'remark', label: '备注', type: 'textarea' as const},
-];
-
 export default function CustomerPage() {
+  const { t } = useTranslation();
+
+  const columns = [
+    { key: 'customerNo', title: t('page.customer.columns.customerNo') },
+    { key: 'customerName', title: t('page.customer.columns.customerName') },
+    { key: 'nationality', title: t('page.customer.columns.nationality') },
+    { key: 'contacts', title: t('page.customer.columns.contacts') },
+    { key: 'phone', title: t('page.customer.columns.phone') },
+    { key: 'email', title: t('page.customer.columns.email') },
+    { key: 'createTime', title: t('page.customer.columns.createTime') },
+  ];
+
+  const searchFields = [
+    { name: 'customerNo', label: t('page.customer.columns.customerNo') },
+    { name: 'customerName', label: t('page.customer.columns.customerName') },
+  ];
+
+  const formFields = [
+    { name: 'customerNo', label: t('page.customer.columns.customerNo'), required: true },
+    { name: 'customerName', label: t('page.customer.columns.customerName'), required: true },
+    { name: 'nationality', label: t('page.customer.columns.nationality') },
+    { name: 'contacts', label: t('page.customer.columns.contacts') },
+    { name: 'phone', label: t('page.customer.columns.phone') },
+    { name: 'email', label: t('page.customer.columns.email') },
+    { name: 'address', label: t('page.customer.columns.address') },
+    { name: 'remark', label: t('page.customer.columns.remark'), type: 'textarea' as const },
+  ];
+
   return (
     <CrudPage
-      title="客户管理"
+      title={t('page.customer.title')}
       api={api}
       columns={columns}
       searchFields={searchFields}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as supplierApi from '@/api/supplier';
 import { useDictOptions } from '@/hooks/useDictOptions';
 
@@ -23,26 +24,23 @@ interface PurchaseFormProps {
 }
 
 export default function PurchaseForm({ initialValues, onSubmit, onCancel }: PurchaseFormProps) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
 
   const purchaseType = useDictOptions('erp_purchase_type', [
-    { value: '原材料', label: '原材料' },
-    { value: '辅料', label: '辅料' },
-    { value: '成品', label: '成品' },
-    { value: '包材', label: '包材' },
+    { value: 'RAW', label: t('page.purchase.type.raw') },
+    { value: 'AUX', label: t('page.purchase.type.auxiliary') },
+    { value: 'FINISHED', label: t('page.purchase.type.finished') },
+    { value: 'PACK', label: t('page.purchase.type.packaging') },
   ]);
 
   const purchaseStatus = useDictOptions('erp_purchase_status', [
-    { value: '0', label: '待确认' },
-    { value: '1', label: '已确认' },
-    { value: '2', label: '已完成' },
-    { value: '3', label: '已取消' },
-    { value: '待确认', label: '待确认' },
-    { value: '已确认', label: '已确认' },
-    { value: '已完成', label: '已完成' },
-    { value: '已取消', label: '已取消' },
+    { value: '0', label: t('page.purchase.status.pending') },
+    { value: '1', label: t('page.purchase.status.confirmed') },
+    { value: '2', label: t('page.purchase.status.completed') },
+    { value: '3', label: t('page.purchase.status.cancelled') },
   ]);
 
   useEffect(() => {
@@ -59,8 +57,8 @@ export default function PurchaseForm({ initialValues, onSubmit, onCancel }: Purc
   useEffect(() => {
     if (initialValues) {
       setForm({
-        ...initialValues,
-        supplierId: String(initialValues.supplierId ?? ''),
+        ...(initialValues as Record<string, string>),
+        supplierId: String((initialValues as any).supplierId ?? ''),
       });
     } else {
       setForm({
@@ -97,7 +95,7 @@ export default function PurchaseForm({ initialValues, onSubmit, onCancel }: Purc
             aria-label={label}
             className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           >
-            <option value="">请选择</option>
+            <option value="">{t('common.pleaseSelect')}</option>
             {options?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -126,15 +124,15 @@ export default function PurchaseForm({ initialValues, onSubmit, onCancel }: Purc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field name="sn" label="采购单号" required />
-      <Field name="supplierId" label="供应商" required>
+      <Field name="sn" label={t('page.purchase.columns.sn')} required />
+      <Field name="supplierId" label={t('page.purchase.columns.supplierName')} required>
         <select
           value={form.supplierId || ''}
           onChange={(event) => setForm((prev) => ({ ...prev, supplierId: event.target.value }))}
-          aria-label="供应商"
+          aria-label={t('page.purchase.columns.supplierName')}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
         >
-          <option value="">请选择供应商</option>
+          <option value="">{t('common.pleaseSelect')}</option>
           {suppliers.map((supplier) => (
             <option key={supplier.id} value={supplier.id}>
               {supplier.supplierName}
@@ -142,14 +140,14 @@ export default function PurchaseForm({ initialValues, onSubmit, onCancel }: Purc
           ))}
         </select>
       </Field>
-      <Field name="type" label="采购类型" required type="select" options={purchaseType.options} />
-      <Field name="bulkOrderNo" label="大货订单号" />
-      <Field name="description" label="采购说明" type="textarea" />
-      <Field name="expectedDeliveryDate" label="预计交期" required type="date" />
-      <Field name="confirmTime" label="确认日期" type="date" />
-      <Field name="status" label="状态" type="select" options={purchaseStatus.options} />
-      <Field name="amount" label="金额" type="number" />
-      <Field name="remark" label="备注" type="textarea" />
+      <Field name="type" label={t('page.purchase.columns.type')} required type="select" options={purchaseType.options} />
+      <Field name="bulkOrderNo" label={t('page.purchase.columns.bulkOrderNo')} />
+      <Field name="description" label={t('page.purchase.columns.description')} type="textarea" />
+      <Field name="expectedDeliveryDate" label={t('page.purchase.columns.expectedDeliveryDate')} required type="date" />
+      <Field name="confirmTime" label={t('page.purchase.form.confirmTime')} type="date" />
+      <Field name="status" label={t('page.purchase.columns.status')} type="select" options={purchaseStatus.options} />
+      <Field name="amount" label={t('page.purchase.columns.amount')} type="number" />
+      <Field name="remark" label={t('page.purchase.form.remark')} type="textarea" />
 
       <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
         <button
@@ -157,14 +155,14 @@ export default function PurchaseForm({ initialValues, onSubmit, onCancel }: Purc
           onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
           disabled={loading}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? '提交中...' : '确定'}
+          {loading ? t('common.submitting') : t('common.confirm')}
         </button>
       </div>
     </form>

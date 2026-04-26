@@ -22,10 +22,10 @@ export default function ProduceJobPage() {
   const [tableKey, setTableKey] = useState(0);
 
   const planStatus = useDictOptions('erp_plan_status', [
-    { value: '0', label: '待生产' },
-    { value: '1', label: '生产中' },
-    { value: '2', label: '已完成' },
-    { value: '3', label: '已取消' },
+    { value: '0', label: t('page.kanban.status.pending') },
+    { value: '1', label: t('page.kanban.status.running') },
+    { value: '2', label: t('page.kanban.status.completed') },
+    { value: '3', label: t('common.close') },
   ]);
 
   const columns = [
@@ -62,9 +62,7 @@ export default function ProduceJobPage() {
       return;
     }
 
-    const confirmed = await confirm(
-      t('page.job.confirmInit', { jobNo: record.jobNo }),
-    );
+    const confirmed = await confirm(t('page.job.confirmInit', { jobNo: record.jobNo }));
     if (!confirmed) {
       return;
     }

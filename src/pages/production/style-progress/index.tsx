@@ -7,6 +7,7 @@ import SearchForm, {SearchField} from '@/components/ui/SearchForm';
 import {Calendar, PackageCheck, TrendingUp, User} from 'lucide-react';
 
 interface StyleProgress {
+  progressRowKey?: string;
   styleCode: string;
   bulkOrderNo: string;
   customerName: string;
@@ -48,7 +49,17 @@ export default function StyleProgressPage() {
         pageSize: pagination.pageSize,
       });
       const rows = res.rows || res || [];
-      setData(rows);
+      const pageOffset = (pagination.pageNum - 1) * pagination.pageSize;
+      setData(rows.map((item: StyleProgress, index: number) => ({
+        ...item,
+        progressRowKey: [
+          item.styleCode || '-',
+          item.salesNo || '-',
+          item.bulkOrderNo || '-',
+          item.customerName || '-',
+          pageOffset + index,
+        ].join('|'),
+      })));
       setPagination((prev) => ({...prev, total: res.total || rows.length}));
     } catch {
       setData([]);
@@ -282,7 +293,7 @@ export default function StyleProgressPage() {
         </div>
       )}
 
-      <BaseTable columns={columns} data={data} loading={loading} rowKey="styleCode" />
+      <BaseTable columns={columns} data={data} loading={loading} rowKey="progressRowKey" />
       <Pagination
         current={pagination.pageNum}
         pageSize={pagination.pageSize}

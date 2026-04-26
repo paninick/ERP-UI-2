@@ -9,6 +9,17 @@ import SearchForm, { SearchField } from '@/components/ui/SearchForm';
 import { useCrud } from '@/hooks/useCrud';
 import { useDictOptions } from '@/hooks/useDictOptions';
 import { confirm } from '@/components/ui/ConfirmDialog';
+import { toast } from '@/components/ui/Toast';
+import { useAuthStore } from '@/stores/authStore';
+import * as approvalApi from '@/api/approval';
+import {
+  buildApprovalLog,
+  buildApprovalPayload,
+  getApprovalActorName,
+  isApprovalLocked,
+  resolveApprovalState,
+  resolveApprovalValue,
+} from '@/utils/approval';
 import * as salesApi from '@/api/sales';
 import SalesOrderForm from './form';
 
@@ -23,6 +34,7 @@ const salesCrudApi = {
 export default function SalesOrderPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const user = useAuthStore((state) => state.user);
   const orderStatus = useDictOptions('sales_order_status');
   const {
     data,
@@ -43,6 +55,51 @@ export default function SalesOrderPage() {
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
+
+  const handleApproval = async (record: any, action: 'submit' | 'approve' | 'reject') => {
+    const actorName = getApprovalActorName(user);
+    const actionText = action === 'submit' ? t('common.submit') : action === 'approve' ? t('common.approve') : t('common.reject');
+    const confirmed = await confirm(t('approval.confirmAction', { action: actionText, name: record.salesNo || record.styleCode || '-' }));
+    if (!confirmed) {
+      return;
+    }
+
+    const nextStatus = action === 'reject'
+      ? resolveApprovalValue(orderStatus.options, 'rejected')
+      : action === 'approve'
+        ? resolveApprovalValue(orderStatus.options, 'approved')
+        : resolveApprovalValue(orderStatus.options, 'submitted');
+
+    try {
+      await salesApi.updateSalesOrder(buildApprovalPayload({
+        record,
+        statusField: 'orderStatus',
+        nextStatus,
+        action,
+        actorName,
+      }));
+      await approvalApi.addApprovalLog(buildApprovalLog({
+        businessType: 'SALES_ORDER',
+        businessId: record.id,
+        businessNo: record.salesNo,
+        nodeCode: 'SALES_APPROVE',
+        actionType: action === 'submit' ? 'SUBMIT' : action === 'approve' ? 'APPROVE' : 'REJECT',
+        fromStatus: String(record.orderStatus || ''),
+        toStatus: String(nextStatus || ''),
+        actionBy: actorName,
+      })).catch(() => null);
+      toast.success(
+        action === 'submit'
+          ? t('approval.submitSuccess')
+          : action === 'approve'
+            ? t('approval.approveSuccess')
+            : t('approval.rejectSuccess'),
+      );
+      handleSearch(searchParams);
+    } catch (error: any) {
+      toast.error(error.message || t('approval.actionFailed'));
+    }
+  };
 
   const columns = [
     { key: 'salesNo', title: t('page.sales.columns.salesNo') },
@@ -93,7 +150,8 @@ export default function SalesOrderPage() {
               setEditingRecord(record);
               setModalOpen(true);
             }}
-            className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
+            disabled={isApprovalLocked(record.orderStatus, orderStatus.options)}
+            className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
           >
             {t('common.edit')}
           </button>
@@ -104,9 +162,41 @@ export default function SalesOrderPage() {
                 handleDelete(String(record.id));
               }
             }}
-            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+            disabled={isApprovalLocked(record.orderStatus, orderStatus.options)}
+            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
           >
             {t('common.delete')}
+          </button>
+          {resolveApprovalState(record.orderStatus, orderStatus.options) !== 'approved' && (
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                handleApproval(record, 'submit');
+              }}
+              className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+            >
+              {t('common.submit')}
+            </button>
+          )}
+          {resolveApprovalState(record.orderStatus, orderStatus.options) !== 'approved' && (
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                handleApproval(record, 'approve');
+              }}
+              className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
+            >
+              {t('common.approve')}
+            </button>
+          )}
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              handleApproval(record, 'reject');
+            }}
+            className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50"
+          >
+            {t('common.reject')}
           </button>
         </div>
       ),

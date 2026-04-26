@@ -1,6 +1,8 @@
 import {useEffect, useState} from 'react';
+import {useTranslation} from 'react-i18next';
 import * as customerApi from '@/api/customer';
 import {useDictOptions} from '@/hooks/useDictOptions';
+import {isApprovalLocked} from '@/utils/approval';
 
 interface BomFormProps {
   initialValues?: any;
@@ -9,6 +11,7 @@ interface BomFormProps {
 }
 
 export default function BomForm({initialValues, onSubmit, onCancel}: BomFormProps) {
+  const {t} = useTranslation();
   const [form, setForm] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -18,6 +21,7 @@ export default function BomForm({initialValues, onSubmit, onCancel}: BomFormProp
   const categoryOptions = useDictOptions('erp_sample_category').options;
   const auditStatusOptions = useDictOptions('erp_sample_audit_status').options;
   const progressOptions = useDictOptions('erp_sample_task_status').options;
+  const locked = isApprovalLocked(initialValues?.auditStatus, auditStatusOptions);
 
   useEffect(() => {
     customerApi.listCustomer({pageNum: 1, pageSize: 999}).then((response: any) => {
@@ -65,9 +69,10 @@ export default function BomForm({initialValues, onSubmit, onCancel}: BomFormProp
             aria-label={label}
             value={form[name] || ''}
             onChange={(event) => setForm((prev) => ({...prev, [name]: event.target.value}))}
+            disabled={locked || name === 'auditStatus'}
             className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           >
-            <option value="">请选择</option>
+            <option value="">{t('common.pleaseSelect')}</option>
             {options?.map((option: any) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
@@ -77,6 +82,7 @@ export default function BomForm({initialValues, onSubmit, onCancel}: BomFormProp
             aria-label={label}
             value={form[name] || ''}
             onChange={(event) => setForm((prev) => ({...prev, [name]: event.target.value}))}
+            disabled={locked}
             className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           />
         ) : (
@@ -85,6 +91,7 @@ export default function BomForm({initialValues, onSubmit, onCancel}: BomFormProp
             type={type}
             value={form[name] || ''}
             onChange={(event) => setForm((prev) => ({...prev, [name]: event.target.value}))}
+            disabled={locked}
             className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           />
         )
@@ -94,30 +101,36 @@ export default function BomForm({initialValues, onSubmit, onCancel}: BomFormProp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field name="sampleNo" label="BOM 编号" />
-      <Field name="customerId" label="客户" required>
+      {locked && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {t('approval.lockedHint')}
+        </div>
+      )}
+      <Field name="sampleNo" label={t('page.bom.columns.sampleNo')} />
+      <Field name="customerId" label={t('page.bom.columns.customerName')} required>
         <select
-          aria-label="客户"
+          aria-label={t('page.bom.columns.customerName')}
           value={form.customerId || ''}
           onChange={(event) => setForm((prev) => ({...prev, customerId: event.target.value}))}
+          disabled={locked}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
         >
-          <option value="">请选择客户</option>
+          <option value="">{t('common.pleaseSelect')}</option>
           {customers.map((customer) => (
             <option key={customer.id} value={customer.id}>{customer.customerName}</option>
           ))}
         </select>
       </Field>
-      <Field name="styleCode" label="款号" />
-      <Field name="bulkOrderNo" label="大货订单号" />
-      <Field name="sampleType" label="打样类型" required type="select" options={sampleTypeOptions} />
-      <Field name="styleType" label="款式大类" required type="select" options={styleTypeOptions} />
-      <Field name="sampleCategoryType" label="样品类型" required type="select" options={categoryOptions} />
-      <Field name="dueDate" label="交期" required type="date" />
-      <Field name="salesName" label="业务员" />
-      <Field name="auditStatus" label="审批状态" type="select" options={auditStatusOptions} />
-      <Field name="progressStatus" label="进行状态" type="select" options={progressOptions} />
-      <Field name="remark" label="备注" type="textarea" />
+      <Field name="styleCode" label={t('page.bom.columns.styleCode')} />
+      <Field name="bulkOrderNo" label={t('page.bom.columns.bulkOrderNo')} />
+      <Field name="sampleType" label={t('page.bom.form.sampleType')} required type="select" options={sampleTypeOptions} />
+      <Field name="styleType" label={t('page.bom.columns.styleType')} required type="select" options={styleTypeOptions} />
+      <Field name="sampleCategoryType" label={t('page.bom.form.sampleCategoryType')} required type="select" options={categoryOptions} />
+      <Field name="dueDate" label={t('page.bom.columns.dueDate')} required type="date" />
+      <Field name="salesName" label={t('page.bom.columns.salesName')} />
+      <Field name="auditStatus" label={t('page.bom.columns.auditStatus')} type="select" options={auditStatusOptions} />
+      <Field name="progressStatus" label={t('page.bom.form.progressStatus')} type="select" options={progressOptions} />
+      <Field name="remark" label={t('page.bom.form.remark')} type="textarea" />
 
       <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
         <button
@@ -125,14 +138,14 @@ export default function BomForm({initialValues, onSubmit, onCancel}: BomFormProp
           onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || locked}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? '提交中...' : '确定'}
+          {loading ? t('common.submitting') : t('common.confirm')}
         </button>
       </div>
     </form>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as supplierApi from '@/api/supplier';
 import { useDictOptions } from '@/hooks/useDictOptions';
+import { isApprovalLocked } from '@/utils/approval';
 
 interface SupplierOption {
   id: number;
@@ -23,17 +25,19 @@ interface OutsourceFormProps {
 }
 
 export default function OutsourceForm({ initialValues, onSubmit, onCancel }: OutsourceFormProps) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
 
   const processStatus = useDictOptions('erp_process_status', [
-    { value: '0', label: '待确认' },
-    { value: '1', label: '已确认' },
-    { value: '2', label: '生产中' },
-    { value: '3', label: '已完成' },
-    { value: '4', label: '已取消' },
+    { value: '0', label: t('page.outsource.status.pending') },
+    { value: '1', label: t('page.outsource.status.confirmed') },
+    { value: '2', label: t('page.outsource.status.running') },
+    { value: '3', label: t('page.outsource.status.completed') },
+    { value: '4', label: t('page.outsource.status.cancelled') },
   ]);
+  const locked = isApprovalLocked(initialValues?.status, processStatus.options);
 
   useEffect(() => {
     supplierApi
@@ -49,8 +53,8 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
   useEffect(() => {
     if (initialValues) {
       setForm({
-        ...initialValues,
-        supplierId: String(initialValues.supplierId ?? ''),
+        ...(initialValues as Record<string, string>),
+        supplierId: String((initialValues as any).supplierId ?? ''),
       });
     } else {
       setForm({
@@ -86,9 +90,10 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
             value={form[name] || ''}
             onChange={(event) => setForm((prev) => ({ ...prev, [name]: event.target.value }))}
             aria-label={label}
+            disabled={locked || name === 'status'}
             className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           >
-            <option value="">请选择</option>
+            <option value="">{t('common.pleaseSelect')}</option>
             {options?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -100,6 +105,7 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
             value={form[name] || ''}
             onChange={(event) => setForm((prev) => ({ ...prev, [name]: event.target.value }))}
             aria-label={label}
+            disabled={locked}
             className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           />
         ) : (
@@ -108,6 +114,7 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
             value={form[name] || ''}
             onChange={(event) => setForm((prev) => ({ ...prev, [name]: event.target.value }))}
             aria-label={label}
+            disabled={locked}
             className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           />
         )
@@ -117,15 +124,21 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field name="outsourceNo" label="外协单号" required />
-      <Field name="supplierId" label="供应商" required>
+      {locked && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          当前外协单已提交或已确认，如需修改请先驳回。
+        </div>
+      )}
+      <Field name="outsourceNo" label={t('page.outsource.columns.outsourceNo')} required />
+      <Field name="supplierId" label={t('page.outsource.columns.supplierName')} required>
         <select
           value={form.supplierId || ''}
           onChange={(event) => setForm((prev) => ({ ...prev, supplierId: event.target.value }))}
-          aria-label="供应商"
+          aria-label={t('page.outsource.columns.supplierName')}
+          disabled={locked}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
         >
-          <option value="">请选择供应商</option>
+          <option value="">{t('common.pleaseSelect')}</option>
           {suppliers.map((supplier) => (
             <option key={supplier.id} value={supplier.id}>
               {supplier.supplierName}
@@ -133,14 +146,14 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
           ))}
         </select>
       </Field>
-      <Field name="jobNo" label="工单编号" />
-      <Field name="processName" label="工序" />
-      <Field name="styleCode" label="款号" />
-      <Field name="quantity" label="数量" type="number" required />
-      <Field name="unitPrice" label="单价" type="number" />
-      <Field name="expectedDate" label="预计交期" type="date" />
-      <Field name="status" label="状态" type="select" options={processStatus.options} />
-      <Field name="remark" label="备注" type="textarea" />
+      <Field name="jobNo" label={t('page.outsource.columns.jobNo')} />
+      <Field name="processName" label={t('page.outsource.columns.processName')} />
+      <Field name="styleCode" label={t('page.outsource.columns.styleCode')} />
+      <Field name="quantity" label={t('page.outsource.columns.quantity')} type="number" required />
+      <Field name="unitPrice" label={t('page.outsource.columns.unitPrice')} type="number" />
+      <Field name="expectedDate" label={t('page.outsource.columns.expectedDate')} type="date" />
+      <Field name="status" label={t('page.outsource.columns.status')} type="select" options={processStatus.options} />
+      <Field name="remark" label={t('page.outsource.form.remark')} type="textarea" />
 
       <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
         <button
@@ -148,14 +161,14 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
           onClick={onCancel}
           className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || locked}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? '提交中...' : '确定'}
+          {loading ? t('common.submitting') : t('common.confirm')}
         </button>
       </div>
     </form>

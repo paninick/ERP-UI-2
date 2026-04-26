@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmStore {
   open: boolean;
@@ -14,7 +15,7 @@ interface ConfirmStore {
 const useConfirmStore = create<ConfirmStore>((set, get) => ({
   open: false,
   message: '',
-  title: '确认操作',
+  title: '',
   resolve: null,
 
   _show: (message, title) =>
@@ -29,11 +30,12 @@ const useConfirmStore = create<ConfirmStore>((set, get) => ({
   },
 }));
 
-export function confirm(message: string, title = '确认操作'): Promise<boolean> {
+export function confirm(message: string, title = ''): Promise<boolean> {
   return useConfirmStore.getState()._show(message, title);
 }
 
 export default function ConfirmDialog() {
+  const { t } = useTranslation();
   const { open, message, title, _answer } = useConfirmStore();
 
   return (
@@ -60,7 +62,7 @@ export default function ConfirmDialog() {
             <div className="flex items-center gap-3 border-b border-slate-200 px-6 py-4">
               <AlertTriangle size={20} className="shrink-0 text-amber-500" />
               <h3 id="confirm-title" className="text-lg font-semibold text-slate-800">
-                {title}
+                {title || t('common.confirmOperation')}
               </h3>
             </div>
             <div className="px-6 py-5">
@@ -74,14 +76,14 @@ export default function ConfirmDialog() {
                 onClick={() => _answer(false)}
                 className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
               >
-                取消
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={() => _answer(true)}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
               >
-                确定
+                {t('common.confirm')}
               </button>
             </div>
           </motion.div>
