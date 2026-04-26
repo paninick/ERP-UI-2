@@ -108,7 +108,7 @@ export default function SalesOrderPage() {
     { key: 'styleCode', title: t('page.sales.columns.styleCode') },
     { key: 'salesDate', title: t('page.sales.columns.orderDate') },
     { key: 'dueDate', title: t('page.sales.columns.deliveryDate') },
-    { key: 'quantity', title: t('page.sales.columns.quantity') },
+    { key: 'quantity', title: t('page.sales.columns.quantity'), render: (value: any) => value ?? '-' },
     {
       key: 'amount',
       title: t('page.sales.columns.amount'),
