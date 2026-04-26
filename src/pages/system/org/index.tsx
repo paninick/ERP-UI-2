@@ -99,7 +99,7 @@ export default function OrgUnitPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4">
-              {[['类型',orgType.toLabel(String(selected.orgType))||selected.orgType],['工厂',factoryDict.labelMap[String(selected.factoryId)]||'—'],['负责人',selected.leader||'—'],['电话',selected.phone||'—'],['排序',String(selected.orderNum)],['状态',selected.status==='0'?'启用':'停用'],['备注',selected.remark||'—']].map(([l,v])=>(
+              {[['类型',orgType.labelMap[String(selected.orgType)]||selected.orgType],['工厂',factoryDict.labelMap[String(selected.factoryId)]||'—'],['负责人',selected.leader||'—'],['电话',selected.phone||'—'],['排序',String(selected.orderNum)],['状态',selected.status==='0'?'启用':'停用'],['备注',selected.remark||'—']].map(([l,v])=>(
                 <div key={l as string}><p className="text-[10px] uppercase text-slate-400">{l}</p><p className="text-sm text-slate-700 mt-0.5">{v as string}</p></div>
               ))}
             </div>
