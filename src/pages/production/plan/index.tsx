@@ -125,7 +125,7 @@ export default function ProducePlanPage() {
                 event.stopPropagation();
                 handleApproval(record, 'submit');
               }}
-              className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+              className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
             >
               {t('common.submit')}
             </button>
@@ -137,7 +137,7 @@ export default function ProducePlanPage() {
                 event.stopPropagation();
                 handleApproval(record, 'approve');
               }}
-              className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
+              className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors"
             >
               {t('common.approve')}
             </button>
@@ -148,7 +148,7 @@ export default function ProducePlanPage() {
               event.stopPropagation();
               handleApproval(record, 'reject');
             }}
-            className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50"
+            className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 transition-colors"
           >
             {t('common.reject')}
           </button>
