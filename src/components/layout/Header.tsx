@@ -1,12 +1,19 @@
 import { useAuthStore } from '@/stores/authStore';
 import { Bell, LogOut, Search, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import i18n, { LANGUAGE_STORAGE_KEY } from '@/i18n';
 
 export default function Header() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const handleLanguageChange = async (language: 'zh' | 'ja') => {
     await i18n.changeLanguage(language);
@@ -55,7 +62,7 @@ export default function Header() {
           <span className="text-sm text-slate-700">{user?.nickname || user?.username || t('userFallback')}</span>
         </div>
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="rounded-lg p-2 hover:bg-slate-100"
           title={t('logout')}
         >
