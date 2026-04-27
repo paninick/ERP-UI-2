@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface FieldConfig {
@@ -9,7 +9,7 @@ interface FieldConfig {
   getOptions?: () => { value: string; label: string }[];
   loadOptions?: () => Promise<{ value: string; label: string }[]>;
   required?: boolean;
-  /** 字段值变化时的回调。setForm 可传入清空子级。 */
+  group?: string;
   onFieldChange?: (name: string, value: string, setForm: (fn: (prev: Record<string, string>) => Record<string, string>) => void) => void;
 }
 
@@ -42,7 +42,6 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
     setForm(nextForm);
   }, [initialValues, fields]);
 
-  // Sync cascade state from initialValues for edit backfill
   const cascadeInitRef = useRef<any>(null);
   useEffect(() => {
     if (!initialValues || cascadeInitRef.current === initialValues) return;
@@ -67,6 +66,26 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
           .catch(() => {});
       }
     });
+  }, [fields]);
+
+  const grouped = useMemo(() => {
+    const groups: { label: string; fields: FieldConfig[] }[] = [];
+    const ungrouped: FieldConfig[] = [];
+    const seen = new Map<string, number>();
+
+    fields.forEach((field) => {
+      if (field.group) {
+        if (!seen.has(field.group)) {
+          seen.set(field.group, groups.length);
+          groups.push({ label: field.group, fields: [] });
+        }
+        groups[seen.get(field.group)!].fields.push(field);
+      } else {
+        ungrouped.push(field);
+      }
+    });
+
+    return { groups, ungrouped };
   }, [fields]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -103,91 +122,113 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
     }
   };
 
+  const renderField = (field: FieldConfig) => {
+    const selectOptions = field.loadOptions
+      ? (asyncOptions[field.name] || [])
+      : (field.getOptions ? field.getOptions() : field.options) || [];
+    const errorId = `${field.name}-error`;
+    const hasError = !!errors[field.name];
+
+    return (
+      <div key={field.name}>
+        <div className="flex items-center gap-3">
+          <label className="w-24 shrink-0 text-right text-sm text-slate-600">
+            {field.required && <span className="mr-1 text-red-500">*</span>}
+            {field.label}
+          </label>
+          {field.type === 'select' ? (
+            <select
+              value={form[field.name] || ''}
+              onChange={(event) => {
+                const val = event.target.value;
+                clearError(field.name);
+                if (field.onFieldChange) {
+                  field.onFieldChange(field.name, val, setForm);
+                } else {
+                  setForm((prev) => ({ ...prev, [field.name]: val }));
+                }
+              }}
+              aria-label={field.label}
+              aria-describedby={hasError ? errorId : undefined}
+              aria-invalid={hasError}
+              className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            >
+              <option value="">{t('common.pleaseSelect')}</option>
+              {selectOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : field.type === 'textarea' ? (
+            <textarea
+              value={form[field.name] || ''}
+              onChange={(event) => {
+                const val = event.target.value;
+                clearError(field.name);
+                if (field.onFieldChange) {
+                  field.onFieldChange(field.name, val, setForm);
+                } else {
+                  setForm((prev) => ({ ...prev, [field.name]: val }));
+                }
+              }}
+              aria-label={field.label}
+              aria-describedby={hasError ? errorId : undefined}
+              aria-invalid={hasError}
+              className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            />
+          ) : (
+            <input
+              type={field.type || 'text'}
+              value={form[field.name] || ''}
+              onChange={(event) => {
+                const val = event.target.value;
+                clearError(field.name);
+                if (field.onFieldChange) {
+                  field.onFieldChange(field.name, val, setForm);
+                } else {
+                  setForm((prev) => ({ ...prev, [field.name]: val }));
+                }
+              }}
+              aria-label={field.label}
+              aria-describedby={hasError ? errorId : undefined}
+              aria-invalid={hasError}
+              className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            />
+          )}
+        </div>
+        {hasError && (
+          <p id={errorId} role="alert" className="mt-1 pl-28 text-xs text-red-500">
+            {errors[field.name]}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const hasGroups = grouped.groups.length > 0;
+
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
-      {fields.map((field) => {
-        const selectOptions = field.loadOptions
-          ? (asyncOptions[field.name] || [])
-          : (field.getOptions ? field.getOptions() : field.options) || [];
-        const errorId = `${field.name}-error`;
-        const hasError = !!errors[field.name];
-
-        return (
-          <div key={field.name}>
-            <div className="flex items-center gap-3">
-              <label className="w-24 text-right text-sm text-slate-600">
-                {field.required && <span className="mr-1 text-red-500">*</span>}
-                {field.label}
-              </label>
-              {field.type === 'select' ? (
-                <select
-                  value={form[field.name] || ''}
-                  onChange={(event) => {
-                    const val = event.target.value;
-                    clearError(field.name);
-                    if (field.onFieldChange) {
-                      field.onFieldChange(field.name, val, setForm);
-                    } else {
-                      setForm((prev) => ({ ...prev, [field.name]: val }));
-                    }
-                  }}
-                  aria-label={field.label}
-                  aria-describedby={hasError ? errorId : undefined}
-                  aria-invalid={hasError}
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                >
-                  <option value="">{t('common.pleaseSelect')}</option>
-                  {selectOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              ) : field.type === 'textarea' ? (
-                <textarea
-                  value={form[field.name] || ''}
-                  onChange={(event) => {
-                    const val = event.target.value;
-                    clearError(field.name);
-                    if (field.onFieldChange) {
-                      field.onFieldChange(field.name, val, setForm);
-                    } else {
-                      setForm((prev) => ({ ...prev, [field.name]: val }));
-                    }
-                  }}
-                  aria-label={field.label}
-                  aria-describedby={hasError ? errorId : undefined}
-                  aria-invalid={hasError}
-                  className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                />
-              ) : (
-                <input
-                  type={field.type || 'text'}
-                  value={form[field.name] || ''}
-                  onChange={(event) => {
-                    const val = event.target.value;
-                    clearError(field.name);
-                    if (field.onFieldChange) {
-                      field.onFieldChange(field.name, val, setForm);
-                    } else {
-                      setForm((prev) => ({ ...prev, [field.name]: val }));
-                    }
-                  }}
-                  aria-label={field.label}
-                  aria-describedby={hasError ? errorId : undefined}
-                  aria-invalid={hasError}
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                />
-              )}
+      {hasGroups ? (
+        <div className="space-y-4">
+          {grouped.groups.map((group) => (
+            <fieldset key={group.label} className="rounded-xl border border-slate-200 p-4">
+              <legend className="px-2 text-sm font-semibold text-slate-700">{group.label}</legend>
+              <div className="space-y-3">
+                {group.fields.map(renderField)}
+              </div>
+            </fieldset>
+          ))}
+          {grouped.ungrouped.length > 0 && (
+            <div className="space-y-3">
+              {grouped.ungrouped.map(renderField)}
             </div>
-            {hasError && (
-              <p id={errorId} role="alert" className="mt-1 pl-28 text-xs text-red-500">
-                {errors[field.name]}
-              </p>
-            )}
-          </div>
-        );
-      })}
+          )}
+        </div>
+      ) : (
+        fields.map(renderField)
+      )}
       <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
         <button
           type="button"

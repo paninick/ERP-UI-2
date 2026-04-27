@@ -85,10 +85,13 @@ export function useDictOptions(dictType?: string, fallbackOptions: DictOption[] 
     };
   };
 
+  const toLabel = (value: any) => labelMap[normalizeValue(value)] || String(value ?? '-');
+
   return {
     loading,
     options,
     labelMap,
     toTag,
+    toLabel,
   };
 }

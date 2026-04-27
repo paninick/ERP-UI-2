@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import { useTranslation } from 'react-i18next';
 import * as productTraceApi from '@/api/productTrace';
 import {toast} from '@/components/ui/Toast';
 import BaseTable from '@/components/ui/BaseTable';
@@ -51,6 +52,8 @@ function safeNumber(value: number | undefined) {
 }
 
 export default function ProductTracePage() {
+  const { t } = useTranslation();
+  const S = 'page.productTrace';
   const [data, setData] = useState<ProductTrace[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -74,7 +77,7 @@ export default function ProductTracePage() {
     } catch {
       setData([]);
       setPagination((prev) => ({...prev, total: 0}));
-      toast.error('加载产品追溯数据失败');
+      toast.error(t(`${S}.loadFailed`));
     } finally {
       setLoading(false);
     }
@@ -97,7 +100,7 @@ export default function ProductTracePage() {
   const columns = [
     {
       key: 'salesNo',
-      title: '销售订单',
+      title: t(`${S}.columns.salesOrder`),
       render: (value: string, record: ProductTrace) => (
         <div className="flex items-center gap-2">
           <ShoppingCart size={14} className="text-slate-400" />
@@ -110,7 +113,7 @@ export default function ProductTracePage() {
     },
     {
       key: 'styleCode',
-      title: '款号 / 大货单',
+      title: t(`${S}.columns.styleAndBulk`),
       render: (value: string, record: ProductTrace) => (
         <div>
           <div className="font-medium text-slate-900">{value || '-'}</div>
@@ -120,7 +123,7 @@ export default function ProductTracePage() {
     },
     {
       key: 'jobNo',
-      title: '工票',
+      title: t(`${S}.columns.jobTicket`),
       render: (value: string, record: ProductTrace) => (
         <div>
           <div className="font-medium text-slate-900">{value || '-'}</div>
@@ -130,7 +133,7 @@ export default function ProductTracePage() {
     },
     {
       key: 'serialNo',
-      title: '序列号',
+      title: t(`${S}.columns.serialNo`),
       render: (value: string) => (
         <div className="flex items-center gap-2">
           <Tag size={14} className="text-slate-400" />
@@ -140,7 +143,7 @@ export default function ProductTracePage() {
     },
     {
       key: 'serialStatus',
-      title: '状态',
+      title: t(`${S}.columns.status`),
       render: (value: string, record: ProductTrace) => (
         <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[value] || STATUS_COLORS['0']}`}>
           {record.serialStatusName || '-'}
@@ -149,22 +152,22 @@ export default function ProductTracePage() {
     },
     {
       key: 'currentProcessName',
-      title: '当前工序',
+      title: t(`${S}.columns.currentProcess`),
       render: (value: string) => value || '-',
     },
     {
       key: 'planQty',
-      title: '计划 / 完成',
+      title: t(`${S}.columns.planVsActual`),
       render: (_value: number, record: ProductTrace) => (
         <div className="text-sm">
           <div className="font-medium text-slate-800">{safeNumber(record.planQty)}</div>
-          <div className="text-slate-400">完成 {safeNumber(record.actualQty)}</div>
+          <div className="text-slate-400">{t(`${S}.completed`, { qty: safeNumber(record.actualQty) })}</div>
         </div>
       ),
     },
     {
       key: 'serialCreateTime',
-      title: '建档',
+      title: t(`${S}.columns.created`),
       render: (value: string) => (
         <div className="flex items-center gap-1.5">
           <Calendar size={14} className="text-slate-400" />
@@ -174,7 +177,7 @@ export default function ProductTracePage() {
     },
     {
       key: 'shipTime',
-      title: '出货',
+      title: t(`${S}.columns.shipped`),
       render: (value: string) => value ? (
         <div className="flex items-center gap-1.5">
           <CheckCircle size={14} className="text-emerald-500" />
@@ -189,27 +192,27 @@ export default function ProductTracePage() {
       <div className="rounded-[28px] bg-[linear-gradient(135deg,#f0fdf4_0%,#dcfce7_38%,#ffffff_100%)] p-6 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-emerald-600">Traceability</p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-900">产品全链路追溯</h2>
+            <p className="text-sm uppercase tracking-[0.28em] text-emerald-600">{t(`${S}.badge`)}</p>
+            <h2 className="mt-2 text-3xl font-semibold text-slate-900">{t(`${S}.title`)}</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              从销售单、款号、工票到成品序列号，追到当前工序和出货状态，便于售后追责、品质闭环和工厂复盘。
+              {t(`${S}.subtitle`)}
             </p>
           </div>
           <div className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl bg-white/85 p-4">
-              <p className="text-slate-400">在制</p>
+              <p className="text-slate-400">{t(`${S}.stats.inProduction`)}</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.inProduction}</p>
             </div>
             <div className="rounded-2xl bg-white/85 p-4">
-              <p className="text-slate-400">完工待入库</p>
+              <p className="text-slate-400">{t(`${S}.stats.completed`)}</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.completed}</p>
             </div>
             <div className="rounded-2xl bg-white/85 p-4">
-              <p className="text-slate-400">已入库</p>
+              <p className="text-slate-400">{t(`${S}.stats.inWarehouse`)}</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.inWarehouse}</p>
             </div>
             <div className="rounded-2xl bg-white/85 p-4">
-              <p className="text-slate-400">已出货</p>
+              <p className="text-slate-400">{t(`${S}.stats.shipped`)}</p>
               <p className="mt-1 text-2xl font-semibold text-emerald-600">{summary.shipped}</p>
             </div>
           </div>
@@ -226,50 +229,50 @@ export default function ProductTracePage() {
           setPagination((prev) => ({...prev, pageNum: 1}));
         }}
       >
-        <SearchField label="销售单号">
+        <SearchField label={t(`${S}.search.salesNo`)}>
           <input
             value={searchParams.salesNo}
             onChange={(event) => setSearchParams((prev) => ({...prev, salesNo: event.target.value}))}
             className="w-36 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="输入销售单号"
+            placeholder={t(`${S}.search.salesNoPlaceholder`)}
           />
         </SearchField>
-        <SearchField label="款号">
+        <SearchField label={t(`${S}.search.styleCode`)}>
           <input
             value={searchParams.styleCode}
             onChange={(event) => setSearchParams((prev) => ({...prev, styleCode: event.target.value}))}
             className="w-36 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="输入款号"
+            placeholder={t(`${S}.search.styleCodePlaceholder`)}
           />
         </SearchField>
-        <SearchField label="工票号">
+        <SearchField label={t(`${S}.search.jobNo`)}>
           <input
             value={searchParams.jobNo}
             onChange={(event) => setSearchParams((prev) => ({...prev, jobNo: event.target.value}))}
             className="w-36 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="输入工票号"
+            placeholder={t(`${S}.search.jobNoPlaceholder`)}
           />
         </SearchField>
-        <SearchField label="序列号">
+        <SearchField label={t(`${S}.search.serialNo`)}>
           <input
             value={searchParams.serialNo}
             onChange={(event) => setSearchParams((prev) => ({...prev, serialNo: event.target.value}))}
             className="w-40 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="输入序列号"
+            placeholder={t(`${S}.search.serialNoPlaceholder`)}
           />
         </SearchField>
-        <SearchField label="状态">
+        <SearchField label={t(`${S}.search.status`)}>
           <select
-            aria-label="状态"
+            aria-label={t(`${S}.search.status`)}
             value={searchParams.serialStatus}
             onChange={(event) => setSearchParams((prev) => ({...prev, serialStatus: event.target.value}))}
             className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           >
-            <option value="">全部</option>
-            <option value="0">在制</option>
-            <option value="1">已完工</option>
-            <option value="2">已入库</option>
-            <option value="3">已出货</option>
+            <option value="">{t(`${S}.search.all`)}</option>
+            <option value="0">{t(`${S}.search.statusInProduction`)}</option>
+            <option value="1">{t(`${S}.search.statusCompleted`)}</option>
+            <option value="2">{t(`${S}.search.statusInWarehouse`)}</option>
+            <option value="3">{t(`${S}.search.statusShipped`)}</option>
           </select>
         </SearchField>
       </SearchForm>

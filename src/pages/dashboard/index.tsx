@@ -1,12 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ArrowRight, ClipboardCheck, Factory, Package, ShoppingCart, Truck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import * as customerApi from '@/api/customer';
-import * as inventoryApi from '@/api/inventory';
-import * as productionApi from '@/api/production';
-import * as salesApi from '@/api/sales';
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { getDashboardStats } from '@/api/dashboard';
 import { useDictOptions } from '@/hooks/useDictOptions';
+
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6'];
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -25,46 +36,44 @@ export default function Dashboard() {
   });
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [recentJobs, setRecentJobs] = useState<any[]>([]);
+  const [salesStatusBreakdown, setSalesStatusBreakdown] = useState<any[]>([]);
+  const [jobStatusBreakdown, setJobStatusBreakdown] = useState<any[]>([]);
 
   useEffect(() => {
-    salesApi
-      .listSalesOrder({ pageNum: 1, pageSize: 1 })
-      .then((response: any) => {
-        setStats((prev) => ({ ...prev, salesCount: String(response.total ?? '-') }));
-      })
-      .catch(() => {});
-    customerApi
-      .listCustomer({ pageNum: 1, pageSize: 1 })
-      .then((response: any) => {
-        setStats((prev) => ({ ...prev, customerCount: String(response.total ?? '-') }));
-      })
-      .catch(() => {});
-    productionApi
-      .listProduceJob({ pageNum: 1, pageSize: 1 })
-      .then((response: any) => {
-        setStats((prev) => ({ ...prev, jobCount: String(response.total ?? '-') }));
-      })
-      .catch(() => {});
-    inventoryApi
-      .listInventory({ pageNum: 1, pageSize: 1 })
-      .then((response: any) => {
-        setStats((prev) => ({ ...prev, inventoryCount: String(response.total ?? '-') }));
-      })
-      .catch(() => {});
-
-    salesApi
-      .listSalesOrder({ pageNum: 1, pageSize: 5 })
-      .then((response: any) => {
-        setRecentSales(response.rows || []);
-      })
-      .catch(() => {});
-    productionApi
-      .listProduceJob({ pageNum: 1, pageSize: 5 })
-      .then((response: any) => {
-        setRecentJobs(response.rows || []);
+    getDashboardStats()
+      .then((res: any) => {
+        const data = res.data || res;
+        if (data.stats) {
+          setStats({
+            salesCount: String(data.stats.salesCount ?? '-'),
+            customerCount: String(data.stats.customerCount ?? '-'),
+            jobCount: String(data.stats.jobCount ?? '-'),
+            inventoryCount: String(data.stats.inventoryCount ?? '-'),
+          });
+        }
+        setRecentSales(data.recentSales || []);
+        setRecentJobs(data.recentJobs || []);
+        setSalesStatusBreakdown(data.salesStatusBreakdown || []);
+        setJobStatusBreakdown(data.jobStatusBreakdown || []);
       })
       .catch(() => {});
   }, []);
+
+  const salesStatusData = useMemo(() =>
+    salesStatusBreakdown.map((item: any) => {
+      const tag = salesOrderStatus.toTag(String(item.status));
+      return { name: tag.label, value: item.count };
+    }),
+    [salesStatusBreakdown, salesOrderStatus],
+  );
+
+  const jobStatusData = useMemo(() =>
+    jobStatusBreakdown.map((item: any) => {
+      const tag = planStatus.toTag(String(item.status));
+      return { name: tag.label, value: item.count };
+    }),
+    [jobStatusBreakdown, planStatus],
+  );
 
   const cards = [
     { label: t('page.dashboard.cards.salesCount'), value: stats.salesCount, icon: ShoppingCart, color: 'bg-indigo-500', link: '/sales/order' },
@@ -82,7 +91,7 @@ export default function Dashboard() {
           <NavLink
             key={card.label}
             to={card.link}
-            className="group flex items-center gap-4 rounded-2xl bg-white p-6 shadow-sm transition hover:shadow-md"
+            className="apple-card group flex items-center gap-4 p-6"
           >
             <div className={`${card.color} rounded-xl p-3 text-white`}>
               <card.icon size={24} />
@@ -96,8 +105,52 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {salesStatusData.length > 0 && (
+          <div className="apple-card p-6">
+            <h3 className="mb-4 text-lg font-semibold text-slate-800">{t('page.dashboard.chartSalesStatus')}</h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={salesStatusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {salesStatusData.map((_: any, idx: number) => (
+                    <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        {jobStatusData.length > 0 && (
+          <div className="apple-card p-6">
+            <h3 className="mb-4 text-lg font-semibold text-slate-800">{t('page.dashboard.chartJobStatus')}</h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={jobStatusData}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {jobStatusData.map((_: any, idx: number) => (
+                    <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="apple-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-800">{t('page.dashboard.recentSales')}</h3>
             <NavLink to="/sales/order" className="text-sm text-indigo-600 hover:text-indigo-700">
@@ -108,7 +161,7 @@ export default function Dashboard() {
             <p className="py-8 text-center text-sm text-slate-400">{t('page.dashboard.empty')}</p>
           ) : (
             <div className="space-y-2">
-              {recentSales.map((item) => {
+              {recentSales.map((item: any) => {
                 const tag = salesOrderStatus.toTag(item.orderStatus);
                 return (
                   <div key={item.id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
@@ -124,7 +177,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="apple-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-800">{t('page.dashboard.recentJobs')}</h3>
             <NavLink to="/production/job" className="text-sm text-indigo-600 hover:text-indigo-700">
@@ -135,7 +188,7 @@ export default function Dashboard() {
             <p className="py-8 text-center text-sm text-slate-400">{t('page.dashboard.empty')}</p>
           ) : (
             <div className="space-y-2">
-              {recentJobs.map((item) => {
+              {recentJobs.map((item: any) => {
                 const tag = planStatus.toTag(item.status);
                 return (
                   <div key={item.id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
@@ -167,7 +220,7 @@ export default function Dashboard() {
           <NavLink
             key={item.path}
             to={item.path}
-            className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm transition hover:shadow-md"
+            className="apple-card flex items-center gap-3 p-4"
           >
             <div className={`rounded-lg p-2 ${item.color}`}>
               <item.icon size={20} />

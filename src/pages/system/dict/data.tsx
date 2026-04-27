@@ -15,8 +15,8 @@ export default function SystemDictDataPage() {
   const meta = (location.state || {}) as { dictName?: string; dictType?: string };
 
   const statusOptions = [
-    { value: '0', label: '正常' },
-    { value: '1', label: '停用' },
+    { value: '0', label: t('common.normal', '正常') },
+    { value: '1', label: t('common.disabled', '停用') },
   ];
 
   const api = useMemo(() => ({
@@ -28,36 +28,36 @@ export default function SystemDictDataPage() {
   }), [meta.dictType]);
 
   const columns = [
-    { key: 'dictCode', title: '字典编码', width: '100px' },
-    { key: 'dictSort', title: '排序', width: '100px' },
-    { key: 'dictLabel', title: '标签' },
-    { key: 'dictValue', title: '键值' },
+    { key: 'dictCode', title: t('systemDictData.dictValue'), width: '100px' },
+    { key: 'dictSort', title: t('systemDictData.sort'), width: '100px' },
+    { key: 'dictLabel', title: t('systemDictData.dictLabel') },
+    { key: 'dictValue', title: t('systemDictData.dictValue') },
     {
       key: 'status',
-      title: '状态',
+      title: t('systemDictData.status'),
       render: (value: string) => {
         const isNormal = value === '0';
         return (
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isNormal ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-            {isNormal ? '正常' : '停用'}
+            {isNormal ? t('common.normal', '正常') : t('common.disabled', '停用')}
           </span>
         );
       },
     },
-    { key: 'cssClass', title: '样式类' },
-    { key: 'listClass', title: '列表样式' },
+    { key: 'cssClass', title: t('systemDictData.listClass') },
+    { key: 'listClass', title: t('systemDictData.listClass') },
     { key: 'remark', title: t('common.remark') },
   ];
 
   const formFields = [
-    { name: 'dictSort', label: '排序', type: 'number' as const, required: true },
-    { name: 'dictLabel', label: '标签', required: true },
-    { name: 'dictValue', label: '键值', required: true },
-    { name: 'cssClass', label: '样式类' },
-    { name: 'listClass', label: '列表样式' },
+    { name: 'dictSort', label: t('systemDictData.sort'), type: 'number' as const, required: true },
+    { name: 'dictLabel', label: t('systemDictData.dictLabel'), required: true },
+    { name: 'dictValue', label: t('systemDictData.dictValue'), required: true },
+    { name: 'cssClass', label: t('systemDictData.listClass') },
+    { name: 'listClass', label: t('systemDictData.listClass') },
     {
       name: 'status',
-      label: '状态',
+      label: t('systemDictData.status'),
       type: 'select' as const,
       options: statusOptions,
     },
@@ -65,11 +65,11 @@ export default function SystemDictDataPage() {
   ];
 
   const searchFields = [
-    { name: 'dictLabel', label: '标签' },
-    { name: 'dictValue', label: '键值' },
+    { name: 'dictLabel', label: t('systemDictData.dictLabel') },
+    { name: 'dictValue', label: t('systemDictData.dictValue') },
     {
       name: 'status',
-      label: '状态',
+      label: t('systemDictData.status'),
       type: 'select' as const,
       options: statusOptions,
     },
@@ -87,16 +87,16 @@ export default function SystemDictDataPage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">字典数据</h2>
+          <h2 className="text-2xl font-bold text-slate-800">{t('systemDictData.title')}</h2>
           <p className="text-sm text-slate-500">
-            {meta.dictName || `字典 ${dictId}`}
+            {meta.dictName || `${t('systemDict.dictName')} ${dictId}`}
             {meta.dictType ? ` / ${meta.dictType}` : ''}
           </p>
         </div>
       </div>
 
       <CrudPage
-        title="字典数据明细"
+        title={t('systemDictData.title')}
         api={api}
         columns={columns}
         rowKey="dictCode"

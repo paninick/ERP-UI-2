@@ -1,21 +1,21 @@
 import client from './client';
 
 export function listQuality(params: any) {
-  return client.get('/erp/quality/list', { params });
+  return client.get('/erp/qc/list', { params });
 }
 
 export function getQuality(id: number) {
-  return client.get(`/erp/quality/${id}`);
+  return client.get(`/erp/qc/${id}`);
 }
 
 export function addQuality(data: any) {
-  return client.post('/erp/quality', data);
+  return client.post('/erp/qc', data);
 }
 
 export function updateQuality(data: any) {
-  return client.put('/erp/quality', data);
+  return client.put('/erp/qc', data);
 }
 
 export function delQuality(ids: string) {
-  return client.delete(`/erp/quality/${ids}`);
+  return client.delete(`/erp/qc/${ids}`);
 }

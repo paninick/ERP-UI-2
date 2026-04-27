@@ -50,6 +50,8 @@ const InspectionBookingPage = lazy(() => import('@/pages/quality/inspection-book
 const JapanReleasePage = lazy(() => import('@/pages/quality/japan-release/index'));
 const ApprovalLogPage = lazy(() => import('@/pages/system/approvallog/index'));
 const ShipmentPage = lazy(() => import('@/pages/inventory/shipment/index'));
+const WarehouseLocationPage = lazy(() => import('@/pages/warehouse/location/index'));
+const WorkCenterPage = lazy(() => import('@/pages/production/work-center/index'));
 
 function ProtectedRoute({children}: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -100,6 +102,7 @@ export const router = createBrowserRouter([
       {path: 'production/job', element: lazyPage(<ProduceJobPage />)},
       {path: 'production/job/print/:id', element: lazyPage(<ProduceJobPrintPage />)},
       {path: 'production/gantt', element: lazyPage(<ProductionGanttPage />)},
+      {path: 'production/work-center', element: lazyPage(<WorkCenterPage />)},
       {path: 'production/process-def', element: lazyPage(<ProcessDefPage />)},
       {path: 'production/process', element: lazyPage(<ProcessRoutePage />)},
       {path: 'production/notice', element: lazyPage(<NoticePage />)},
@@ -120,6 +123,7 @@ export const router = createBrowserRouter([
       {path: 'inventory/stock-out', element: lazyPage(<StockOutPage />)},
       {path: 'inventory/list', element: lazyPage(<InventoryListPage />)},
       {path: 'warehouse', element: lazyPage(<WarehousePage />)},
+      {path: 'warehouse/location', element: lazyPage(<WarehouseLocationPage />)},
 
       {path: 'purchase', element: lazyPage(<PurchasePage />)},
       {path: 'outsource', element: lazyPage(<OutsourcePage />)},

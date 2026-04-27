@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {ArrowDown, ArrowUp, Plus, Trash2} from 'lucide-react';
 import * as processDefApi from '@/api/processDef';
 import * as processRouteApi from '@/api/processRoute';
@@ -58,11 +59,6 @@ const emptyRoute: RouteForm = {
   remark: '',
 };
 
-const yesNoOptions = [
-  {value: '0', label: '否'},
-  {value: '1', label: '是'},
-];
-
 const fallbackProductTypes = [
   {value: 'SWEATER', label: '毛衫'},
   {value: 'SPLICE', label: '拼接款'},
@@ -99,7 +95,61 @@ function toNumber(value: any, fallback = 0) {
   return Number.isFinite(next) ? next : fallback;
 }
 
+interface StepCardProps {
+  step: number;
+  sortOrder: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onRemove: () => void;
+  children: ReactNode;
+}
+
+function StepCard({ step, sortOrder, canMoveUp, canMoveDown, onMoveUp, onMoveDown, onRemove, children }: StepCardProps) {
+  return (
+    <div className="group rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className="flex shrink-0 flex-col items-center gap-1">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
+            {step}
+          </span>
+          <span className="text-[10px] text-slate-400">{sortOrder}</span>
+        </div>
+        {children}
+        <div className="flex shrink-0 gap-0.5">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-20"
+          >
+            <ArrowUp size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-20"
+          >
+            <ArrowDown size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProcessRoutePage() {
+  const { t } = useTranslation();
+  const S = 'page.processRoute';
   const productType = useDictOptions('erp_product_family', fallbackProductTypes);
   const status = useDictOptions('sys_normal_disable', fallbackStatus);
   const requiredMode = useDictOptions('erp_route_item_required_mode', requiredModeOptions);
@@ -114,6 +164,11 @@ export default function ProcessRoutePage() {
   const [items, setItems] = useState<RouteItem[]>([]);
   const [search, setSearch] = useState({routeName: '', productType: '', status: ''});
   const [pagination, setPagination] = useState({pageNum: 1, pageSize: 10, total: 0});
+
+  const yesNoOptions = useMemo(() => [
+    {value: '0', label: t('common.no')},
+    {value: '1', label: t('common.yes')},
+  ], [t]);
 
   const processMap = useMemo(() => {
     const map: Record<string, ProcessDef> = {};
@@ -143,7 +198,7 @@ export default function ProcessRoutePage() {
       setRoutes(res.rows || []);
       setPagination((prev) => ({...prev, total: res.total || 0}));
     } catch (error: any) {
-      toast.error(error.message || '加载工艺路线失败');
+      toast.error(error.message || t(`${S}.loadFailed`));
     } finally {
       setLoading(false);
     }
@@ -181,7 +236,7 @@ export default function ProcessRoutePage() {
       })));
       setModalOpen(true);
     } catch (error: any) {
-      toast.error(error.message || '加载路线详情失败');
+      toast.error(error.message || t(`${S}.loadDetailFailed`));
     }
   };
 
@@ -249,23 +304,23 @@ export default function ProcessRoutePage() {
 
   const handleSave = async () => {
     if (!form.routeName.trim()) {
-      toast.error('请填写工艺路线名称');
+      toast.error(t(`${S}.validation.routeNameRequired`));
       return;
     }
     if (!form.productType) {
-      toast.error('请选择产品类型');
+      toast.error(t(`${S}.validation.productTypeRequired`));
       return;
     }
     if (items.length === 0) {
-      toast.error('请至少添加一道工序');
+      toast.error(t(`${S}.validation.itemsRequired`));
       return;
     }
     if (items.some((item) => !item.processId)) {
-      toast.error('路线明细中存在未选择的工序');
+      toast.error(t(`${S}.validation.processRequired`));
       return;
     }
     if (items.some((item) => item.requiredMode === 'CONDITIONAL' && !item.conditionCode)) {
-      toast.error('条件工序必须选择条件编码');
+      toast.error(t(`${S}.validation.conditionRequired`));
       return;
     }
 
@@ -280,56 +335,56 @@ export default function ProcessRoutePage() {
       };
       if (form.id) {
         await processRouteApi.updateProcessRoute(payload);
-        toast.success('工艺路线已更新');
+        toast.success(t(`${S}.updateSuccess`));
       } else {
         await processRouteApi.addProcessRoute(payload);
-        toast.success('工艺路线已新增');
+        toast.success(t(`${S}.addSuccess`));
       }
       setModalOpen(false);
       loadRoutes();
     } catch (error: any) {
-      toast.error(error.message || '保存工艺路线失败');
+      toast.error(error.message || t(`${S}.saveFailed`));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (record: any) => {
-    if (!(await confirm(`确认删除工艺路线「${record.routeName}」吗？`))) return;
+    if (!(await confirm(t(`${S}.deleteConfirm`, { name: record.routeName })))) return;
     try {
       await processRouteApi.delProcessRoute(String(record.id));
-      toast.success('工艺路线已删除');
+      toast.success(t(`${S}.deleteSuccess`));
       loadRoutes();
     } catch (error: any) {
-      toast.error(error.message || '删除工艺路线失败');
+      toast.error(error.message || t(`${S}.deleteFailed`));
     }
   };
 
   const routeColumns = [
-    {key: 'routeName', title: '工艺路线名称'},
+    {key: 'routeName', title: t(`${S}.routeName`)},
     {
       key: 'productType',
-      title: '产品类型',
+      title: t(`${S}.productType`),
       render: (value: string) => productType.toTag(value).label,
     },
-    {key: 'productCode', title: '款号/产品编码'},
+    {key: 'productCode', title: t(`${S}.productCode`)},
     {
       key: 'isDefault',
-      title: '默认路线',
-      render: (value: number | string) => (String(value ?? '0') === '1' ? '是' : '否'),
+      title: t(`${S}.isDefault`),
+      render: (value: number | string) => (String(value ?? '0') === '1' ? t('common.yes') : t('common.no')),
     },
     {
       key: 'status',
-      title: '状态',
+      title: t(`${S}.status`),
       render: (value: string) => {
         const tag = status.toTag(value, 'bg-slate-100 text-slate-600');
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
       },
     },
-    {key: 'createTime', title: '创建时间'},
+    {key: 'createTime', title: t(`${S}.createTime`)},
     {
       key: 'actions',
-      title: '操作',
+      title: t(`${S}.actions`),
       width: '150px',
       render: (_: any, record: any) => (
         <div className="flex gap-2">
@@ -340,7 +395,7 @@ export default function ProcessRoutePage() {
             }}
             className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
           >
-            编辑
+            {t(`${S}.edit`)}
           </button>
           <button
             onClick={(event) => {
@@ -349,7 +404,7 @@ export default function ProcessRoutePage() {
             }}
             className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
           >
-            删除
+            {t(`${S}.delete`)}
           </button>
         </div>
       ),
@@ -360,9 +415,9 @@ export default function ProcessRoutePage() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">工艺路线</h2>
+          <h2 className="text-2xl font-bold text-slate-800">{t(`${S}.title`)}</h2>
           <p className="mt-1 text-sm text-slate-500">
-            按产品类型、款号维护标准工序顺序；照灯/灯检、印花、绣花等先在工序定义中维护后再加入路线。
+            {t(`${S}.description`)}
           </p>
         </div>
         <button
@@ -370,7 +425,7 @@ export default function ProcessRoutePage() {
           className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
         >
           <Plus size={14} />
-          新增路线
+          {t(`${S}.newRoute`)}
         </button>
       </div>
 
@@ -381,33 +436,33 @@ export default function ProcessRoutePage() {
           setPagination((prev) => ({...prev, pageNum: 1}));
         }}
       >
-        <SearchField label="路线名称">
+        <SearchField label={t(`${S}.searchRouteName`)}>
           <input
             value={search.routeName}
             onChange={(event) => setSearch((prev) => ({...prev, routeName: event.target.value}))}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="请输入路线名称"
+            placeholder={t(`${S}.searchPlaceholder`)}
           />
         </SearchField>
-        <SearchField label="产品类型">
+        <SearchField label={t(`${S}.searchProductType`)}>
           <select
             value={search.productType}
             onChange={(event) => setSearch((prev) => ({...prev, productType: event.target.value}))}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           >
-            <option value="">全部</option>
+            <option value="">{t(`${S}.searchAll`)}</option>
             {productType.options.map((item) => (
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
         </SearchField>
-        <SearchField label="状态">
+        <SearchField label={t(`${S}.searchStatus`)}>
           <select
             value={search.status}
             onChange={(event) => setSearch((prev) => ({...prev, status: event.target.value}))}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           >
-            <option value="">全部</option>
+            <option value="">{t(`${S}.searchAll`)}</option>
             {status.options.map((item) => (
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
@@ -425,14 +480,14 @@ export default function ProcessRoutePage() {
 
       <BaseModal
         open={modalOpen}
-        title={form.id ? '编辑工艺路线' : '新增工艺路线'}
+        title={form.id ? t(`${S}.editTitle`) : t(`${S}.newTitle`)}
         onClose={() => setModalOpen(false)}
         width="960px"
       >
         <div className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1 text-sm">
-              <span className="text-slate-600">路线名称 *</span>
+              <span className="text-slate-600">{t(`${S}.form.routeName`)}</span>
               <input
                 value={form.routeName}
                 onChange={(event) => setForm((prev) => ({...prev, routeName: event.target.value}))}
@@ -440,20 +495,20 @@ export default function ProcessRoutePage() {
               />
             </label>
             <label className="space-y-1 text-sm">
-              <span className="text-slate-600">产品类型 *</span>
+              <span className="text-slate-600">{t(`${S}.form.productType`)}</span>
               <select
                 value={form.productType}
                 onChange={(event) => setForm((prev) => ({...prev, productType: event.target.value}))}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-indigo-400"
               >
-                <option value="">请选择</option>
+                <option value="">{t(`${S}.form.selectPlaceholder`)}</option>
                 {productType.options.map((item) => (
                   <option key={item.value} value={item.value}>{item.label}</option>
                 ))}
               </select>
             </label>
             <label className="space-y-1 text-sm">
-              <span className="text-slate-600">款号/产品编码</span>
+              <span className="text-slate-600">{t(`${S}.form.productCode`)}</span>
               <input
                 value={form.productCode}
                 onChange={(event) => setForm((prev) => ({...prev, productCode: event.target.value}))}
@@ -462,7 +517,7 @@ export default function ProcessRoutePage() {
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-1 text-sm">
-                <span className="text-slate-600">默认路线</span>
+                <span className="text-slate-600">{t(`${S}.form.isDefault`)}</span>
                 <select
                   value={String(form.isDefault)}
                   onChange={(event) => setForm((prev) => ({...prev, isDefault: Number(event.target.value)}))}
@@ -474,7 +529,7 @@ export default function ProcessRoutePage() {
                 </select>
               </label>
               <label className="space-y-1 text-sm">
-                <span className="text-slate-600">状态</span>
+                <span className="text-slate-600">{t(`${S}.form.status`)}</span>
                 <select
                   value={form.status}
                   onChange={(event) => setForm((prev) => ({...prev, status: event.target.value}))}
@@ -489,7 +544,7 @@ export default function ProcessRoutePage() {
           </div>
 
           <label className="block space-y-1 text-sm">
-            <span className="text-slate-600">备注</span>
+            <span className="text-slate-600">{t(`${S}.form.remark`)}</span>
             <textarea
               value={form.remark}
               onChange={(event) => setForm((prev) => ({...prev, remark: event.target.value}))}
@@ -500,8 +555,8 @@ export default function ProcessRoutePage() {
           <div className="rounded-xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
               <div>
-                <h3 className="font-semibold text-slate-800">路线工序明细</h3>
-                <p className="text-xs text-slate-500">顺序会按 10、20、30 自动写入 sortOrder，方便后续插入工序。</p>
+                <h3 className="font-semibold text-slate-800">{t(`${S}.routeItems.title`)}</h3>
+                <p className="text-xs text-slate-500">{t(`${S}.routeItems.description`)}</p>
               </div>
               <button
                 type="button"
@@ -509,44 +564,36 @@ export default function ProcessRoutePage() {
                 className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs text-white hover:bg-slate-700"
               >
                 <Plus size={13} />
-                添加工序
+                {t(`${S}.routeItems.addItem`)}
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1320px] text-sm">
-                <thead className="bg-white">
-                  <tr className="border-b border-slate-100 text-left text-slate-500">
-                    <th className="px-3 py-2">序号</th>
-                    <th className="px-3 py-2">工序</th>
-                    <th className="px-3 py-2">控制点</th>
-                    <th className="px-3 py-2">模式</th>
-                    <th className="px-3 py-2">条件</th>
-                    <th className="px-3 py-2">外协</th>
-                    <th className="px-3 py-2">质检</th>
-                    <th className="px-3 py-2">检针</th>
-                    <th className="px-3 py-2">损耗</th>
-                    <th className="px-3 py-2">计件</th>
-                    <th className="px-3 py-2">允许强制开工</th>
-                    <th className="px-3 py-2">完成比例%</th>
-                    <th className="px-3 py-2">标准周期h</th>
-                    <th className="px-3 py-2">备注</th>
-                    <th className="px-3 py-2">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.length === 0 ? (
-                    <tr>
-                      <td colSpan={15} className="px-3 py-10 text-center text-slate-400">
-                        暂无工序，请先添加。照灯/灯检等节点需先在工序定义中维护。
-                      </td>
-                    </tr>
-                  ) : items.map((item, index) => {
-                    const selectedProcess = processMap[String(item.processId)];
-                    return (
-                      <tr key={`${item.id || 'new'}-${index}`} className="border-b border-slate-100">
-                        <td className="px-3 py-2 text-slate-500">{(index + 1) * 10}</td>
-                        <td className="px-3 py-2">
+            <div className="p-4 space-y-3 max-h-[500px] overflow-y-auto">
+              {items.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-400">
+                  {t(`${S}.routeItems.empty`)}
+                </p>
+              ) : (
+                items.map((item, index) => {
+                  const selectedProcess = processMap[String(item.processId)];
+                  const isOutsource = (item.isOutsource ?? 0) === 1;
+                  const isQc = (item.qcRequired ?? 0) === 1;
+                  const isControlPoint = (item.isControlPoint ?? 0) === 1;
+                  const modeLabel = requiredMode.toTag(item.requiredMode || 'REQUIRED').label;
+
+                  return (
+                    <StepCard
+                      key={`${item.id || 'new'}-${index}`}
+                      step={index + 1}
+                      sortOrder={(index + 1) * 10}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < items.length - 1}
+                      onMoveUp={() => moveItem(index, -1)}
+                      onMoveDown={() => moveItem(index, 1)}
+                      onRemove={() => removeItem(index)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
                           <select
                             value={item.processId || ''}
                             onChange={(event) => {
@@ -557,162 +604,162 @@ export default function ProcessRoutePage() {
                                 qcRequired: process?.needQualityCheck === 1 ? 1 : item.qcRequired,
                               });
                             }}
-                            className="w-44 rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
+                            className="flex-1 max-w-xs rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-indigo-400"
                           >
-                            <option value="">请选择</option>
+                            <option value="">{t(`${S}.routeItems.selectProcess`)}</option>
                             {processDefs.map((process) => (
                               <option key={process.id} value={process.id}>
                                 {process.processCode ? `${process.processCode} ` : ''}{process.processName}
                               </option>
                             ))}
                           </select>
-                          {selectedProcess?.needQualityCheck === 1 && (
-                            <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">质检</span>
+                          {isControlPoint && (
+                            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">{t(`${S}.columns.controlPoint`)}</span>
                           )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={String(item.isControlPoint ?? 0)}
-                            onChange={(event) => updateItem(index, {isControlPoint: Number(event.target.value)})}
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={item.requiredMode || 'REQUIRED'}
-                            onChange={(event) => updateItem(index, {requiredMode: event.target.value})}
-                            className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {requiredMode.options.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={item.conditionCode || ''}
-                            onChange={(event) => updateItem(index, {conditionCode: event.target.value})}
-                            disabled={(item.requiredMode || 'REQUIRED') !== 'CONDITIONAL'}
-                            className="w-32 rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400 disabled:bg-slate-50 disabled:text-slate-400"
-                          >
-                            {conditionCode.options.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={String(item.isOutsource ?? 0)}
-                            onChange={(event) => updateItem(index, {isOutsource: Number(event.target.value)})}
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={String(item.qcRequired ?? 0)}
-                            onChange={(event) => updateItem(index, {qcRequired: Number(event.target.value)})}
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={String(item.needleCheckRequired ?? 0)}
-                            onChange={(event) => updateItem(index, {needleCheckRequired: Number(event.target.value)})}
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={String(item.lossTracked ?? 0)}
-                            onChange={(event) => updateItem(index, {lossTracked: Number(event.target.value)})}
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={String(item.pieceWageApplicable ?? 1)}
-                            onChange={(event) => updateItem(index, {pieceWageApplicable: Number(event.target.value)})}
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <select
-                            value={String(item.allowForceStart ?? 0)}
-                            onChange={(event) => updateItem(index, {allowForceStart: Number(event.target.value)})}
-                            className="rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          >
-                            {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            value={item.requireCompleteRatio ?? 100}
-                            onChange={(event) => updateItem(index, {requireCompleteRatio: Number(event.target.value)})}
-                            className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            value={item.standardCycleHours ?? ''}
-                            onChange={(event) => updateItem(index, {
-                              standardCycleHours: event.target.value === '' ? undefined : Number(event.target.value),
-                            })}
-                            className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            value={item.remark || ''}
-                            onChange={(event) => updateItem(index, {remark: event.target.value})}
-                            className="w-36 rounded-lg border border-slate-200 px-2 py-1.5 outline-none focus:border-indigo-400"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() => moveItem(index, -1)}
-                              disabled={index === 0}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"
-                            >
-                              <ArrowUp size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moveItem(index, 1)}
-                              disabled={index === items.length - 1}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"
-                            >
-                              <ArrowDown size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeItem(index)}
-                              className="rounded p-1 text-red-500 hover:bg-red-50"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                          {isQc && (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{t(`${S}.columns.qc`)}</span>
+                          )}
+                          {isOutsource && (
+                            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{t(`${S}.columns.outsource`)}</span>
+                          )}
+                          <span className="text-xs text-slate-400">{modeLabel}</span>
+                        </div>
+
+                        <details className="mt-3">
+                          <summary className="cursor-pointer text-xs text-indigo-600 hover:text-indigo-700 select-none">
+                            {t(`${S}.routeItems.toggleDetail`)}
+                          </summary>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.controlPoint`)}</span>
+                              <select
+                                value={String(isControlPoint ? 1 : 0)}
+                                onChange={(event) => updateItem(index, {isControlPoint: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.mode`)}</span>
+                              <select
+                                value={item.requiredMode || 'REQUIRED'}
+                                onChange={(event) => updateItem(index, {requiredMode: event.target.value})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {requiredMode.options.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.condition`)}</span>
+                              <select
+                                value={item.conditionCode || ''}
+                                onChange={(event) => updateItem(index, {conditionCode: event.target.value})}
+                                disabled={(item.requiredMode || 'REQUIRED') !== 'CONDITIONAL'}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400 disabled:bg-slate-50 disabled:text-slate-400"
+                              >
+                                {conditionCode.options.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.outsource`)}</span>
+                              <select
+                                value={String(item.isOutsource ?? 0)}
+                                onChange={(event) => updateItem(index, {isOutsource: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.qc`)}</span>
+                              <select
+                                value={String(item.qcRequired ?? 0)}
+                                onChange={(event) => updateItem(index, {qcRequired: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.needleCheck`)}</span>
+                              <select
+                                value={String(item.needleCheckRequired ?? 0)}
+                                onChange={(event) => updateItem(index, {needleCheckRequired: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.loss`)}</span>
+                              <select
+                                value={String(item.lossTracked ?? 0)}
+                                onChange={(event) => updateItem(index, {lossTracked: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.pieceWage`)}</span>
+                              <select
+                                value={String(item.pieceWageApplicable ?? 1)}
+                                onChange={(event) => updateItem(index, {pieceWageApplicable: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.forceStart`)}</span>
+                              <select
+                                value={String(item.allowForceStart ?? 0)}
+                                onChange={(event) => updateItem(index, {allowForceStart: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {yesNoOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.completeRatio`)}</span>
+                              <input
+                                type="number"
+                                value={item.requireCompleteRatio ?? 100}
+                                onChange={(event) => updateItem(index, {requireCompleteRatio: Number(event.target.value)})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              />
+                            </label>
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.cycleHours`)}</span>
+                              <input
+                                type="number"
+                                value={item.standardCycleHours ?? ''}
+                                onChange={(event) => updateItem(index, {
+                                  standardCycleHours: event.target.value === '' ? undefined : Number(event.target.value),
+                                })}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              />
+                            </label>
+                            <label className="flex items-center gap-2 text-xs sm:col-span-2 lg:col-span-2">
+                              <span className="w-20 text-slate-500">{t(`${S}.remark`)}</span>
+                              <input
+                                value={item.remark || ''}
+                                onChange={(event) => updateItem(index, {remark: event.target.value})}
+                                className="flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              />
+                            </label>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </details>
+                      </div>
+                    </StepCard>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -721,14 +768,14 @@ export default function ProcessRoutePage() {
               onClick={() => setModalOpen(false)}
               className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
             >
-              取消
+              {t(`${S}.cancel`)}
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {saving ? '保存中...' : '保存路线'}
+              {saving ? t(`${S}.saving`) : t(`${S}.saveRoute`)}
             </button>
           </div>
         </div>

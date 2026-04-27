@@ -510,7 +510,7 @@ export default function SalesOrderDetailPage() {
         </div>
       </section>
 
-      <ApprovalTimeline title="销售审批记录" logs={approvalLogs} loading={approvalLoading} />
+      <ApprovalTimeline title={t('page.salesDetail.approvalLog')} logs={approvalLogs} loading={approvalLoading} />
 
       <section className="rounded-3xl bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">

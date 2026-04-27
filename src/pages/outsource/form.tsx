@@ -126,7 +126,7 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
     <form onSubmit={handleSubmit} className="space-y-4">
       {locked && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          当前外协单已提交或已确认，如需修改请先驳回。
+          {t('page.outsource.lockedHint')}
         </div>
       )}
       <Field name="outsourceNo" label={t('page.outsource.columns.outsourceNo')} required />

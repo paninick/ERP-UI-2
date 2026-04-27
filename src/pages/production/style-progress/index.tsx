@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import { useTranslation } from 'react-i18next';
 import * as styleProgressApi from '@/api/styleProgress';
 import {toast} from '@/components/ui/Toast';
 import BaseTable from '@/components/ui/BaseTable';
@@ -31,6 +32,8 @@ function safeNumber(value: number | undefined) {
 }
 
 export default function StyleProgressPage() {
+  const { t } = useTranslation();
+  const S = 'page.styleProgress';
   const [data, setData] = useState<StyleProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -64,7 +67,7 @@ export default function StyleProgressPage() {
     } catch {
       setData([]);
       setPagination((prev) => ({...prev, total: 0}));
-      toast.error('加载款号进度数据失败');
+      toast.error(t(`${S}.loadFailed`));
     } finally {
       setLoading(false);
     }
@@ -121,7 +124,7 @@ export default function StyleProgressPage() {
   const columns = [
     {
       key: 'styleCode',
-      title: '款号',
+      title: t(`${S}.columns.styleCode`),
       render: (value: string, record: StyleProgress) => (
         <div>
           <div className="font-medium text-slate-900">{value}</div>
@@ -131,7 +134,7 @@ export default function StyleProgressPage() {
     },
     {
       key: 'customerName',
-      title: '客户',
+      title: t(`${S}.columns.customer`),
       render: (value: string) => (
         <div className="flex items-center gap-1.5">
           <User size={14} className="text-slate-400" />
@@ -141,21 +144,21 @@ export default function StyleProgressPage() {
     },
     {
       key: 'salesNo',
-      title: '销售单号',
+      title: t(`${S}.columns.salesNo`),
     },
     {
       key: 'totalPlanQty',
-      title: '计划 / 完成',
+      title: t(`${S}.columns.planVsActual`),
       render: (_value: number, record: StyleProgress) => (
         <div className="text-sm">
           <div className="font-medium text-slate-800">{safeNumber(record.totalPlanQty).toLocaleString()}</div>
-          <div className="text-slate-400">完成 {safeNumber(record.totalActualQty).toLocaleString()}</div>
+          <div className="text-slate-400">{t(`${S}.completed`, { qty: safeNumber(record.totalActualQty).toLocaleString() })}</div>
         </div>
       ),
     },
     {
       key: 'completeRatePct',
-      title: '进度',
+      title: t(`${S}.columns.progress`),
       width: '220px',
       render: (value: number, record: StyleProgress) => {
         const rate = safeNumber(value);
@@ -181,7 +184,7 @@ export default function StyleProgressPage() {
     },
     {
       key: 'shippedQty',
-      title: '已发货',
+      title: t(`${S}.columns.shipped`),
       render: (value: number) => (
         <div className="flex items-center gap-1.5">
           <PackageCheck size={14} className="text-slate-400" />
@@ -191,7 +194,7 @@ export default function StyleProgressPage() {
     },
     {
       key: 'dueDate',
-      title: '交期',
+      title: t(`${S}.columns.dueDate`),
       render: (value: string, record: StyleProgress) => {
         const overdue = isOverdue(value, safeNumber(record.completeRatePct));
         return (
@@ -199,7 +202,7 @@ export default function StyleProgressPage() {
             <Calendar size={14} className={overdue ? 'text-red-400' : 'text-slate-400'} />
             <span className={overdue ? 'font-medium text-red-600' : 'text-slate-600'}>
               {value || '-'}
-              {overdue ? ' 逾期' : ''}
+              {overdue ? ` ${t(`${S}.overdue`)}` : ''}
             </span>
           </div>
         );
@@ -207,7 +210,7 @@ export default function StyleProgressPage() {
     },
     {
       key: 'totalJobs',
-      title: '工单数',
+      title: t(`${S}.columns.jobCount`),
       render: (value: number) => (
         <div className="flex items-center gap-1.5">
           <TrendingUp size={14} className="text-slate-400" />
@@ -222,27 +225,27 @@ export default function StyleProgressPage() {
       <div className="rounded-[28px] bg-[radial-gradient(circle_at_top_left,#fef3c7_0%,#fff7ed_42%,#ffffff_100%)] p-6 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-amber-500">Style Progress</p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-900">款号进度视图</h2>
+            <p className="text-sm uppercase tracking-[0.28em] text-amber-500">{t(`${S}.badge`)}</p>
+            <h2 className="mt-2 text-3xl font-semibold text-slate-900">{t(`${S}.title`)}</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              把款号维度的订单、工单、发货和交期放到同一屏，便于判断哪些款还缺工序推进、哪些款已经可以转交业务和仓储。
+              {t(`${S}.subtitle`)}
             </p>
           </div>
           <div className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl bg-white/80 p-4">
-              <p className="text-slate-400">在制款号</p>
+              <p className="text-slate-400">{t(`${S}.stats.activeStyles`)}</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.totalStyles}</p>
             </div>
             <div className="rounded-2xl bg-white/80 p-4">
-              <p className="text-slate-400">计划总量</p>
+              <p className="text-slate-400">{t(`${S}.stats.totalPlanQty`)}</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.totalPlanQty}</p>
             </div>
             <div className="rounded-2xl bg-white/80 p-4">
-              <p className="text-slate-400">已完成</p>
+              <p className="text-slate-400">{t(`${S}.stats.completedQty`)}</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.totalActualQty}</p>
             </div>
             <div className="rounded-2xl bg-white/80 p-4">
-              <p className="text-slate-400">平均达成</p>
+              <p className="text-slate-400">{t(`${S}.stats.averageRate`)}</p>
               <p className={`mt-1 text-2xl font-semibold ${stats.delayed > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
                 {stats.averageRate}%
               </p>
@@ -261,35 +264,35 @@ export default function StyleProgressPage() {
           setPagination((prev) => ({...prev, pageNum: 1}));
         }}
       >
-        <SearchField label="款号">
+        <SearchField label={t(`${S}.search.styleCode`)}>
           <input
             value={searchParams.styleCode}
             onChange={(event) => setSearchParams((prev) => ({...prev, styleCode: event.target.value}))}
             className="w-40 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="输入款号"
+            placeholder={t(`${S}.search.styleCodePlaceholder`)}
           />
         </SearchField>
-        <SearchField label="客户">
+        <SearchField label={t(`${S}.search.customer`)}>
           <input
             value={searchParams.customerName}
             onChange={(event) => setSearchParams((prev) => ({...prev, customerName: event.target.value}))}
             className="w-40 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="输入客户"
+            placeholder={t(`${S}.search.customerPlaceholder`)}
           />
         </SearchField>
-        <SearchField label="销售单号">
+        <SearchField label={t(`${S}.search.salesNo`)}>
           <input
             value={searchParams.salesNo}
             onChange={(event) => setSearchParams((prev) => ({...prev, salesNo: event.target.value}))}
             className="w-40 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            placeholder="输入销售单号"
+            placeholder={t(`${S}.search.salesNoPlaceholder`)}
           />
         </SearchField>
       </SearchForm>
 
       {stats.delayed > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          当前列表中有 {stats.delayed} 个款号已逾期但尚未完成，建议优先核查对应工单的当前工序与质检状态。
+          {t(`${S}.warning`, { count: stats.delayed })}
         </div>
       )}
 

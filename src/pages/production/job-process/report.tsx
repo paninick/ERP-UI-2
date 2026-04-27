@@ -384,11 +384,11 @@ export default function ProcessReportPage() {
   const handleInsertCustomProcess = async () => {
     if (!jobId) return;
     if (!customAction.processId) {
-      toast.warning('请选择要插入的工序');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.selectProcess'));
       return;
     }
     if (!customAction.reason.trim()) {
-      toast.warning('请填写插入原因，便于追溯');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.fillReason'));
       return;
     }
 
@@ -409,21 +409,21 @@ export default function ProcessReportPage() {
         insertReason: customAction.reason,
         remark: customAction.reason,
       });
-      toast.success('已插入临时工序');
+      toast.success(t('page.jobProcessReport.customAction.toasts.insertSuccess'));
       resetCustomAction();
       await reloadProcessState();
     } catch (error: any) {
-      toast.error(error.message || '插入临时工序失败');
+      toast.error(error.message || t('page.jobProcessReport.customAction.toasts.insertFailed'));
     }
   };
 
   const handleSkipCurrentProcess = async () => {
     if (!currentProcess) {
-      toast.warning('当前没有可跳过的工序');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.noProcessToSkip'));
       return;
     }
     if (!customAction.reason.trim()) {
-      toast.warning('请填写跳过原因');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.fillSkipReason'));
       return;
     }
 
@@ -433,25 +433,25 @@ export default function ProcessReportPage() {
         skipReason: customAction.reason,
         remark: customAction.reason,
       });
-      toast.success('当前工序已跳过');
+      toast.success(t('page.jobProcessReport.customAction.toasts.skipSuccess'));
       resetCustomAction();
       await reloadProcessState();
     } catch (error: any) {
-      toast.error(error.message || '跳过工序失败');
+      toast.error(error.message || t('page.jobProcessReport.customAction.toasts.skipFailed'));
     }
   };
 
   const handleInsertReworkProcess = async () => {
     if (!jobId || !currentProcess) {
-      toast.warning('当前没有返修来源工序');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.noReworkSource'));
       return;
     }
     if (!customAction.processId) {
-      toast.warning('请选择返修工序');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.selectReworkProcess'));
       return;
     }
     if (!customAction.reason.trim()) {
-      toast.warning('请填写返修原因');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.fillReworkReason'));
       return;
     }
 
@@ -468,11 +468,11 @@ export default function ProcessReportPage() {
         insertReason: customAction.reason,
         remark: customAction.reason,
       });
-      toast.success('已插入返修工序');
+      toast.success(t('page.jobProcessReport.customAction.toasts.reworkSuccess'));
       resetCustomAction();
       await reloadProcessState();
     } catch (error: any) {
-      toast.error(error.message || '插入返修工序失败');
+      toast.error(error.message || t('page.jobProcessReport.customAction.toasts.reworkFailed'));
     }
   };
 
@@ -598,16 +598,16 @@ export default function ProcessReportPage() {
 
   const handleBindMaterialConsume = async (consumeId: number) => {
     if (!currentProcess) {
-      toast.warning('当前没有可绑定的工序');
+      toast.warning(t('page.jobProcessReport.customAction.toasts.noProcessToBind'));
       return;
     }
     setBindingConsumeId(consumeId);
     try {
       await materialConsumeApi.bindProduceMaterialConsumeToJobProcess(consumeId, currentProcess.id);
-      toast.success('已绑定到当前工序');
+      toast.success(t('page.jobProcessReport.customAction.toasts.bindSuccess'));
       await reloadMaterialConsumes();
     } catch (error: any) {
-      toast.error(error?.message || '绑定用料失败');
+      toast.error(error?.message || t('page.jobProcessReport.customAction.toasts.bindFailed'));
     } finally {
       setBindingConsumeId(null);
     }
@@ -924,27 +924,27 @@ export default function ProcessReportPage() {
 
             <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
               <div className="mb-3">
-                <h4 className="font-semibold text-slate-800">执行用料与成本</h4>
+                <h4 className="font-semibold text-slate-800">{t('page.jobProcessReport.material.title')}</h4>
                 <p className="mt-1 text-xs text-slate-500">
-                  当前聚合的是本工单{currentProcess ? ' / 当前工序' : ''}的执行用料记录，用于观察损耗、超领和成本偏差是否开始沉淀。
+                  {t('page.jobProcessReport.material.description', { current: currentProcess ? ` / ${t('page.jobProcessReport.currentProcess')}` : '' })}
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <div className="rounded-xl bg-white px-4 py-3">
-                  <p className="text-xs text-slate-400">实际领用数量</p>
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.actualQtyLabel')}</p>
                   <p className="mt-1 text-lg font-semibold text-slate-900">{formatAmount(materialSummary.totalQty)}</p>
                 </div>
                 <div className="rounded-xl bg-white px-4 py-3">
-                  <p className="text-xs text-slate-400">实际成本</p>
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.actualCostLabel')}</p>
                   <p className="mt-1 text-lg font-semibold text-slate-900">{formatAmount(materialSummary.totalActualCost)}</p>
                 </div>
                 <div className="rounded-xl bg-white px-4 py-3">
-                  <p className="text-xs text-slate-400">理论成本</p>
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.theoreticalCostLabel')}</p>
                   <p className="mt-1 text-lg font-semibold text-slate-900">{formatAmount(materialSummary.totalTheoreticalCost)}</p>
                 </div>
                 <div className="rounded-xl bg-white px-4 py-3">
-                  <p className="text-xs text-slate-400">成本偏差</p>
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.costDiffLabel')}</p>
                   <p className={`mt-1 text-lg font-semibold ${materialSummary.totalCostDiff > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                     {formatAmount(materialSummary.totalCostDiff)}
                   </p>
@@ -953,17 +953,17 @@ export default function ProcessReportPage() {
 
               <div className="mt-3 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                 <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3">
-                  <p className="text-xs text-slate-400">累计实际损耗</p>
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.cumulativeLoss')}</p>
                   <p className="mt-1 text-base font-semibold text-slate-900">{formatAmount(materialSummary.totalActualLoss)}</p>
                 </div>
                 <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3">
-                  <p className="text-xs text-slate-400">超限记录</p>
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.overLimitCount')}</p>
                   <p className={`mt-1 text-base font-semibold ${materialSummary.overLimitCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>
                     {materialSummary.overLimitCount}
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3">
-                  <p className="text-xs text-slate-400">待审批</p>
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.pendingApproval')}</p>
                   <p className={`mt-1 text-base font-semibold ${materialSummary.pendingApprovalCount > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
                     {materialSummary.pendingApprovalCount}
                   </p>
@@ -972,12 +972,12 @@ export default function ProcessReportPage() {
 
               <div className="mt-3 rounded-xl bg-white px-4 py-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs text-slate-400">最近用料明细</p>
-                  {materialLoading ? <span className="text-xs text-slate-400">加载中...</span> : null}
+                  <p className="text-xs text-slate-400">{t('page.jobProcessReport.material.recentDetail')}</p>
+                  {materialLoading ? <span className="text-xs text-slate-400">{t('page.jobProcessReport.material.loading')}</span> : null}
                 </div>
                 {materialConsumes.length === 0 ? (
                   <p className="text-sm text-slate-500">
-                    当前还没有关联到执行用料记录。下一步应把领料/补料/超领审批与报工事件继续绑定。
+                    {t('page.jobProcessReport.material.empty')}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -989,8 +989,8 @@ export default function ProcessReportPage() {
                               {item.materialCode || '-'} {item.materialName || ''}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
-                              {item.materialType || 'UNKNOWN'}
-                              {item.batchNo ? ` / 批次 ${item.batchNo}` : ''}
+                              {item.materialType || t('page.jobProcessReport.material.materialTypeUnknown')}
+                              {item.batchNo ? ` / ${t('page.jobProcessReport.material.batch', { batch: item.batchNo })}` : ''}
                             </p>
                           </div>
                           <div className="text-right">
@@ -998,7 +998,7 @@ export default function ProcessReportPage() {
                               {formatAmount(Number(item.actualQty || 0))}{item.unit ? ` ${item.unit}` : ''}
                             </p>
                             <p className={`mt-1 text-xs ${Number(item.costDiff || 0) > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                              偏差 {formatAmount(Number(item.costDiff || 0))}
+                              {t('page.jobProcessReport.material.deviation')} {formatAmount(Number(item.costDiff || 0))}
                             </p>
                           </div>
                         </div>
@@ -1011,8 +1011,8 @@ export default function ProcessReportPage() {
               {pendingMaterialConsumes.length > 0 ? (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-medium text-amber-700">待归属用料</p>
-                    <span className="text-xs text-amber-600">{pendingMaterialConsumes.length} 条</span>
+                    <p className="text-xs font-medium text-amber-700">{t('page.jobProcessReport.material.unassignedTitle')}</p>
+                    <span className="text-xs text-amber-600">{t('page.jobProcessReport.material.unassignedCount', { count: pendingMaterialConsumes.length })}</span>
                   </div>
                   <div className="space-y-2">
                     {pendingMaterialConsumes.slice(0, 5).map((item) => (
@@ -1023,7 +1023,7 @@ export default function ProcessReportPage() {
                               {item.materialCode || '-'} {item.materialName || ''}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
-                              {item.materialType || 'UNKNOWN'} / 数量 {formatAmount(Number(item.actualQty || 0))}
+                              {item.materialType || t('page.jobProcessReport.material.materialTypeUnknown')} / {t('page.jobProcessReport.fields.inQty')} {formatAmount(Number(item.actualQty || 0))}
                             </p>
                           </div>
                           <button
@@ -1032,7 +1032,7 @@ export default function ProcessReportPage() {
                             disabled={bindingConsumeId === item.id}
                             className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {bindingConsumeId === item.id ? '绑定中...' : '绑定当前工序'}
+                            {bindingConsumeId === item.id ? t('page.jobProcessReport.material.binding') : t('page.jobProcessReport.material.bindButton')}
                           </button>
                         </div>
                       </div>
@@ -1044,15 +1044,15 @@ export default function ProcessReportPage() {
 
             <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
               <div className="mb-3">
-                <h4 className="font-semibold text-slate-800">现场工序调整</h4>
+                <h4 className="font-semibold text-slate-800">{t('page.jobProcessReport.customAction.title')}</h4>
                 <p className="mt-1 text-xs text-slate-500">
-                  用于临时插入照灯/灯检、印花、绣花、检品公司、返修等节点；所有调整都会写入工单工序快照。
+                  {t('page.jobProcessReport.customAction.description')}
                 </p>
               </div>
 
               <div className="space-y-3">
                 <label className="block text-xs text-slate-600">
-                  工序
+                  {t('page.jobProcessReport.customAction.process')}
                   <select
                     value={customAction.processId}
                     onChange={(event) => {
@@ -1065,7 +1065,7 @@ export default function ProcessReportPage() {
                     }}
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
                   >
-                    <option value="">请选择要插入的工序</option>
+                    <option value="">{t('page.jobProcessReport.customAction.processPlaceholder')}</option>
                     {processDefs.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.processCode ? `${item.processCode} ` : ''}{item.processName}
@@ -1076,35 +1076,35 @@ export default function ProcessReportPage() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block text-xs text-slate-600">
-                    插入序号
+                    {t('page.jobProcessReport.customAction.insertSeq')}
                     <input
                       type="number"
                       value={customAction.processSeq}
                       onChange={(event) => setCustomAction((prev) => ({ ...prev, processSeq: event.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
-                      placeholder={currentProcess ? String(currentProcess.processSeq) : '末尾'}
+                      placeholder={currentProcess ? String(currentProcess.processSeq) : t('page.jobProcessReport.customAction.insertSeqPlaceholder')}
                     />
                   </label>
                   <label className="block text-xs text-slate-600">
-                    是否外协
+                    {t('page.jobProcessReport.customAction.isOutsource')}
                     <select
                       value={customAction.isOutsource}
                       onChange={(event) => setCustomAction((prev) => ({ ...prev, isOutsource: event.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
                     >
-                      <option value="0">本厂</option>
-                      <option value="1">外协</option>
+                      <option value="0">{t('page.jobProcessReport.customAction.inhouse')}</option>
+                      <option value="1">{t('page.jobProcessReport.customAction.outsource')}</option>
                     </select>
                   </label>
                 </div>
 
                 <label className="block text-xs text-slate-600">
-                  原因
+                  {t('page.jobProcessReport.customAction.reason')}
                   <textarea
                     value={customAction.reason}
                     onChange={(event) => setCustomAction((prev) => ({ ...prev, reason: event.target.value }))}
                     className="mt-1 h-20 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
-                    placeholder="例如：日单要求灯检；客户追加绣花；质检不合格返修；该工序无需执行。"
+                    placeholder={t('page.jobProcessReport.customAction.reasonPlaceholder')}
                   />
                 </label>
 
@@ -1114,7 +1114,7 @@ export default function ProcessReportPage() {
                     onClick={handleInsertCustomProcess}
                     className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-700"
                   >
-                    插入临时工序
+                    {t('page.jobProcessReport.customAction.insertCustom')}
                   </button>
                   <button
                     type="button"
@@ -1122,7 +1122,7 @@ export default function ProcessReportPage() {
                     disabled={!currentProcess}
                     className="rounded-lg bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    插入返修工序
+                    {t('page.jobProcessReport.customAction.insertRework')}
                   </button>
                   <button
                     type="button"
@@ -1130,7 +1130,7 @@ export default function ProcessReportPage() {
                     disabled={!currentProcess}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    跳过当前工序
+                    {t('page.jobProcessReport.customAction.skipCurrent')}
                   </button>
                 </div>
               </div>

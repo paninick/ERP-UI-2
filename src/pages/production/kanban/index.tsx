@@ -160,27 +160,27 @@ export default function ProductionKanbanPage() {
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
             <p className="text-2xl font-bold">{stats.totalPlans}</p>
-            <p className="text-xs text-blue-100 mt-1">总计划数</p>
+            <p className="text-xs text-blue-100 mt-1">{t('page.kanban.statsLabels.totalPlans')}</p>
           </div>
           <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
             <p className="text-2xl font-bold">{stats.totalWipJobs}</p>
-            <p className="text-xs text-blue-100 mt-1">在制工单</p>
+            <p className="text-xs text-blue-100 mt-1">{t('page.kanban.statsLabels.wipJobs')}</p>
           </div>
           <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
             <p className="text-2xl font-bold">{stats.todayCompleted}</p>
-            <p className="text-xs text-blue-100 mt-1">今日完成</p>
+            <p className="text-xs text-blue-100 mt-1">{t('page.kanban.statsLabels.todayCompleted')}</p>
           </div>
           <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
             <p className="text-2xl font-bold">{stats.weekCompleted}</p>
-            <p className="text-xs text-blue-100 mt-1">本周完成</p>
+            <p className="text-xs text-blue-100 mt-1">{t('page.kanban.statsLabels.weekCompleted')}</p>
           </div>
           <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
             <p className="text-2xl font-bold">{stats.capacityUtilization}%</p>
-            <p className="text-xs text-blue-100 mt-1">产能利用率</p>
+            <p className="text-xs text-blue-100 mt-1">{t('page.kanban.statsLabels.capacityUtilization')}</p>
           </div>
           <div className="rounded-2xl bg-white/10 p-3 backdrop-blur text-center">
             <p className="text-2xl font-bold">{stats.onTimeDeliveryRate}%</p>
-            <p className="text-xs text-blue-100 mt-1">准时交付率</p>
+            <p className="text-xs text-blue-100 mt-1">{t('page.kanban.statsLabels.onTimeDeliveryRate')}</p>
           </div>
         </div>
 
@@ -195,7 +195,7 @@ export default function ProductionKanbanPage() {
                 <p className="text-2xl font-semibold">{jobs.length}</p>
               </div>
             </div>
-            <p className="mt-3 text-xs text-blue-100/90">计划产量 {metrics.totalPlanQty.toLocaleString()}</p>
+            <p className="mt-3 text-xs text-blue-100/90">{t('page.kanban.metrics.plannedQty', { qty: metrics.totalPlanQty.toLocaleString() })}</p>
           </div>
 
           <div className="rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur">

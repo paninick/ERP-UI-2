@@ -145,7 +145,7 @@ export default function QualityInspectionPage() {
   const handleInspectionBooking = async (record: JobProcessRecord) => {
     const bookingNo = inspectionBookingNo.trim();
     if (!bookingNo) {
-      toast.warning('请输入检品预约号');
+      toast.warning(t('page.qualityInspection.inspectionBooking.enterBookingNo'));
       return;
     }
 
@@ -159,12 +159,12 @@ export default function QualityInspectionPage() {
         fromStatus: String(record.processStatus || ''),
         toStatus: 'BOOKED',
         actionBy: inspectorName,
-        actionRemark: `检品预约号: ${bookingNo}`,
+        actionRemark: `${t('page.qualityInspection.inspectionBooking.bookingButton')}: ${bookingNo}`,
       }));
-      toast.success('检品预约已记录');
+      toast.success(t('page.qualityInspection.inspectionBooking.bookingSuccess'));
       await refreshDialogData(record);
     } catch (error: any) {
-      toast.error(error.message || '检品预约记录失败');
+      toast.error(error.message || t('page.qualityInspection.inspectionBooking.bookingFail'));
     }
   };
 
@@ -173,7 +173,7 @@ export default function QualityInspectionPage() {
       return;
     }
     if (result === 'FAIL' && !rejectReason.trim()) {
-      toast.warning('检品不通过时请填写原因');
+      toast.warning(t('page.qualityInspection.inspectionBooking.resultFailRequired'));
       return;
     }
 
@@ -188,12 +188,12 @@ export default function QualityInspectionPage() {
         fromStatus: String(selectedRecord.processStatus || ''),
         toStatus: result === 'PASS' ? 'INSPECT_PASS' : 'INSPECT_FAIL',
         actionBy: inspectorName,
-        actionRemark: result === 'PASS' ? '第三方检品通过' : rejectReason.trim(),
+        actionRemark: result === 'PASS' ? t('page.qualityInspection.inspectionBooking.passRemark') : rejectReason.trim(),
       }));
-      toast.success(result === 'PASS' ? '检品通过已记录' : '检品不通过已记录');
+      toast.success(result === 'PASS' ? t('page.qualityInspection.inspectionBooking.passResult') : t('page.qualityInspection.inspectionBooking.failResult'));
       await refreshDialogData(selectedRecord);
     } catch (error: any) {
-      toast.error(error.message || '检品结果记录失败');
+      toast.error(error.message || t('page.qualityInspection.inspectionBooking.resultFail'));
     } finally {
       setSubmitting(false);
     }
@@ -255,7 +255,7 @@ export default function QualityInspectionPage() {
         fromStatus: String(selectedRecord.processStatus || ''),
         toStatus: result,
         actionBy: inspectorName,
-        actionRemark: result === 'FAIL' ? rejectReason.trim() : '品质放行',
+        actionRemark: result === 'FAIL' ? rejectReason.trim() : t('page.qualityInspection.inspectionBooking.passRemark'),
       })).catch(() => null);
       toast.success(
         result === 'PASS'
@@ -389,8 +389,8 @@ export default function QualityInspectionPage() {
                         <span>{defectCategory.labelMap[String(defect.defectCategory)] || defect.defectCategory}</span>
                         <span>{defectLevel.labelMap[String(defect.defectLevel)] || defect.defectLevel}</span>
                         <span>x{defect.defectQty}</span>
-                        {defect.handleType && <span>处理: {defect.handleType}</span>}
-                        {defect.responsibility && <span>责任: {defect.responsibility}</span>}
+                        {defect.handleType && <span>{t('page.qualityInspection.defectHandle')} {defect.handleType}</span>}
+                        {defect.responsibility && <span>{t('page.qualityInspection.defectResponsibility')} {defect.responsibility}</span>}
                         {defect.isBrokenNeedle === '1' && (
                           <span className="font-bold text-red-700">{t('page.qualityInspection.brokenNeedle')}</span>
                         )}
@@ -408,21 +408,21 @@ export default function QualityInspectionPage() {
               )}
 
               <div className="rounded-xl border border-slate-200 p-4">
-                <p className="mb-2 text-sm font-semibold text-slate-800">日单第三方检品</p>
+                <p className="mb-2 text-sm font-semibold text-slate-800">{t('page.qualityInspection.inspectionBooking.sectionTitle')}</p>
                 <div className="flex gap-2">
                   <input
-                    aria-label="检品预约号"
+                    aria-label={t('page.qualityInspection.inspectionBooking.bookingButton')}
                     value={inspectionBookingNo}
                     onChange={(event) => setInspectionBookingNo(event.target.value)}
                     className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                    placeholder="适用于日单第三方检品预约"
+                    placeholder={t('page.qualityInspection.inspectionBooking.placeholder')}
                   />
                   <button
                     type="button"
                     onClick={() => handleInspectionBooking(selectedRecord)}
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                   >
-                    预约
+                    {t('page.qualityInspection.inspectionBooking.bookingButton')}
                   </button>
                   <button
                     type="button"
@@ -430,7 +430,7 @@ export default function QualityInspectionPage() {
                     disabled={submitting}
                     className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
                   >
-                    检品通过
+                    {t('page.qualityInspection.inspectionBooking.passButton')}
                   </button>
                   <button
                     type="button"
@@ -438,7 +438,7 @@ export default function QualityInspectionPage() {
                     disabled={submitting}
                     className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50"
                   >
-                    检品不通过
+                    {t('page.qualityInspection.inspectionBooking.failButton')}
                   </button>
                 </div>
               </div>
@@ -454,7 +454,7 @@ export default function QualityInspectionPage() {
                 />
               </div>
 
-              <ApprovalTimeline title="质检 / 检品记录" logs={approvalLogs} />
+              <ApprovalTimeline title={t('page.qualityInspection.approvalLog')} logs={approvalLogs} />
             </div>
 
             <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">

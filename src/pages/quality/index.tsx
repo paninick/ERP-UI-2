@@ -14,55 +14,61 @@ const api = {
 
 export default function QualityPage() {
   const { t } = useTranslation();
-  const processStatus = useDictOptions('erp_process_status', [
-    { value: '0', label: t('page.quality.status.pending') },
-    { value: '1', label: t('page.quality.status.inspecting') },
-    { value: '2', label: t('page.quality.status.pass') },
-    { value: '3', label: t('page.quality.status.fail') },
+  const qcResult = useDictOptions('erp_qc_result', [
+    { value: 'PASS', label: t('quality.result.pass') },
+    { value: 'FAIL', label: t('quality.result.fail') },
+    { value: 'PENDING', label: t('quality.result.pending') },
+  ]);
+  const qcType = useDictOptions('erp_qc_type', [
+    { value: 'DAILY', label: t('quality.type.daily') },
+    { value: 'FINAL', label: t('quality.type.final') },
+    { value: 'OUTSOURCE', label: t('quality.type.outsource') },
   ]);
 
   const columns = [
-    { key: 'qualityNo', title: t('page.quality.columns.qualityNo') },
-    { key: 'jobNo', title: t('page.quality.columns.jobNo') },
-    { key: 'styleCode', title: t('page.quality.columns.styleCode') },
-    { key: 'checkQty', title: t('page.quality.columns.checkQty') },
-    { key: 'defectQty', title: t('page.quality.columns.defectQty') },
+    { key: 'batchNo', title: t('quality.columns.batchNo') },
+    { key: 'orderNo', title: t('quality.columns.orderNo') },
+    { key: 'styleCode', title: t('quality.columns.styleCode') },
+    { key: 'sampleQty', title: t('quality.columns.sampleQty') },
+    { key: 'defectQty', title: t('quality.columns.defectQty') },
     {
-      key: 'defectRate',
-      title: t('page.quality.columns.defectRate'),
+      key: 'passRate',
+      title: t('quality.columns.passRate'),
       render: (value: number) => (value != null ? `${(value * 100).toFixed(1)}%` : '-'),
     },
     {
-      key: 'status',
-      title: t('page.quality.columns.status'),
+      key: 'result',
+      title: t('quality.columns.result'),
       render: (value: string) => {
-        const tag = processStatus.toTag(value, 'bg-slate-100 text-slate-600');
+        const tag = qcResult.toTag(value, 'bg-slate-100 text-slate-600');
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
       },
     },
-    { key: 'checkDate', title: t('page.quality.columns.checkDate') },
+    { key: 'inspectorName', title: t('quality.columns.inspector') },
+    { key: 'createTime', title: t('quality.columns.checkDate') },
   ];
 
   const searchFields = [
-    { name: 'qualityNo', label: t('page.quality.columns.qualityNo') },
-    { name: 'jobNo', label: t('page.quality.columns.jobNo') },
-    { name: 'status', label: t('page.quality.columns.status'), type: 'select' as const, options: processStatus.options },
+    { name: 'batchNo', label: t('quality.columns.batchNo') },
+    { name: 'orderNo', label: t('quality.columns.orderNo') },
+    { name: 'result', label: t('quality.columns.result'), type: 'select' as const, options: qcResult.options },
   ];
 
   const formFields = [
-    { name: 'qualityNo', label: t('page.quality.columns.qualityNo'), required: true },
-    { name: 'jobNo', label: t('page.quality.columns.jobNo') },
-    { name: 'styleCode', label: t('page.quality.columns.styleCode') },
-    { name: 'checkQty', label: t('page.quality.columns.checkQty'), type: 'number' as const },
-    { name: 'defectQty', label: t('page.quality.columns.defectQty'), type: 'number' as const },
-    { name: 'checkDate', label: t('page.quality.columns.checkDate'), type: 'date' as const },
-    { name: 'status', label: t('page.quality.columns.status'), type: 'select' as const, options: processStatus.options },
-    { name: 'remark', label: t('page.quality.columns.remark'), type: 'textarea' as const },
+    { name: 'batchNo', label: t('quality.columns.batchNo'), required: true },
+    { name: 'orderNo', label: t('quality.columns.orderNo') },
+    { name: 'styleCode', label: t('quality.columns.styleCode') },
+    { name: 'sampleQty', label: t('quality.columns.sampleQty'), type: 'number' as const },
+    { name: 'defectQty', label: t('quality.columns.defectQty'), type: 'number' as const },
+    { name: 'qcType', label: t('quality.columns.qcType'), type: 'select' as const, options: qcType.options },
+    { name: 'result', label: t('quality.columns.result'), type: 'select' as const, options: qcResult.options },
+    { name: 'inspectorName', label: t('quality.columns.inspector') },
+    { name: 'remark', label: t('quality.columns.remark'), type: 'textarea' as const },
   ];
 
   return (
     <CrudPage
-      title={t('page.quality.title')}
+      title={t('quality.title')}
       api={api}
       columns={columns}
       searchFields={searchFields}

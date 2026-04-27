@@ -64,8 +64,8 @@ export default function OutsourcePage() {
 
   const handleApproval = async (record: any, action: 'submit' | 'approve' | 'reject') => {
     const actorName = getApprovalActorName(user);
-    const actionText = action === 'submit' ? '提交' : action === 'approve' ? '确认' : '驳回';
-    const confirmed = await confirm(`确认对 ${record.outsourceNo || record.jobNo || '-'} 执行「${actionText}」吗？`);
+    const actionText = action === 'submit' ? t('page.outsource.approval.submit') : action === 'approve' ? t('page.outsource.approval.approve') : t('page.outsource.approval.reject');
+    const confirmed = await confirm(t('page.outsource.approval.confirmText', { no: record.outsourceNo || record.jobNo || '-', action: actionText }));
     if (!confirmed) {
       return;
     }
@@ -94,12 +94,12 @@ export default function OutsourcePage() {
         toStatus: String(nextStatus || ''),
         actionBy: actorName,
       })).catch(() => null);
-      toast.success(action === 'approve' ? '外协单已确认' : action === 'reject' ? '外协单已驳回' : '外协单已提交');
+      toast.success(action === 'approve' ? t('page.outsource.approval.toastSuccess') : action === 'reject' ? t('page.outsource.approval.toastReject') : t('page.outsource.approval.toastSubmit'));
       if (logOpen && currentRecord?.id === record.id) {
         loadApprovalLogs({ ...record, status: nextStatus });
       }
     } catch (error: any) {
-      toast.error(error.message || '外协审批操作失败');
+      toast.error(error.message || t('page.outsource.approval.toastFail'));
     }
   };
 
@@ -153,7 +153,7 @@ export default function OutsourcePage() {
                 }}
                 className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
               >
-                提交
+                {t('page.outsource.approval.submit')}
               </button>
             )}
             {resolveApprovalState(record.status, processStatus.options) !== 'approved' && (
@@ -165,7 +165,7 @@ export default function OutsourcePage() {
                 }}
                 className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
               >
-                确认
+                {t('page.outsource.approval.approve')}
               </button>
             )}
             <button
@@ -176,7 +176,7 @@ export default function OutsourcePage() {
               }}
               className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50"
             >
-              驳回
+              {t('page.outsource.approval.reject')}
             </button>
             <button
               type="button"
@@ -186,7 +186,7 @@ export default function OutsourcePage() {
               }}
               className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
             >
-              记录
+              {t('page.outsource.approval.log')}
             </button>
           </>
         )}
@@ -194,11 +194,11 @@ export default function OutsourcePage() {
 
       <BaseModal
         open={logOpen}
-        title={`外协审批记录 - ${currentRecord?.outsourceNo || currentRecord?.jobNo || '-'}`}
+        title={t('page.outsource.approval.modalTitle', { no: currentRecord?.outsourceNo || currentRecord?.jobNo || '-' })}
         onClose={() => setLogOpen(false)}
         width="760px"
       >
-        <ApprovalTimeline title="外协审批记录" logs={approvalLogs} loading={logLoading} />
+        <ApprovalTimeline title={t('page.outsource.approval.approvalLog')} logs={approvalLogs} loading={logLoading} />
       </BaseModal>
     </>
   );

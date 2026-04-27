@@ -7,18 +7,18 @@ const pageApi = { list: api.listApprovalLog, get: api.getApprovalLog, add: api.a
 export default function ApprovalLogPage() {
   const { t } = useTranslation();
   const columns = [
-    { key: 'businessType', title: t('approval.businessType') },
-    { key: 'businessId', title: t('approval.businessId') },
-    { key: 'nodeCode', title: t('approval.nodeCode') },
-    { key: 'actionType', title: t('approval.actionType') },
-    { key: 'fromStatus', title: t('approval.from') },
-    { key: 'toStatus', title: t('approval.to') },
-    { key: 'actionBy', title: t('approval.by') },
-    { key: 'actionTime', title: t('approval.time') },
+    { key: 'businessType', title: t('approvalLog.businessType') },
+    { key: 'businessId', title: t('approvalLog.businessId') },
+    { key: 'nodeCode', title: t('approvalLog.nodeCode') },
+    { key: 'actionType', title: t('approvalLog.actionType') },
+    { key: 'fromStatus', title: t('approvalLog.from') },
+    { key: 'toStatus', title: t('approvalLog.to') },
+    { key: 'actionBy', title: t('approvalLog.by') },
+    { key: 'actionTime', title: t('approvalLog.time') },
   ];
   const searchFields = [
-    { name: 'businessType', label: t('approval.businessType') },
-    { name: 'businessId', label: t('approval.businessId') },
+    { name: 'businessType', label: t('approvalLog.businessType') },
+    { name: 'businessId', label: t('approvalLog.businessId') },
   ];
-  return <CrudPage title={t('approval.title')} api={pageApi} columns={columns} searchFields={searchFields} />;
+  return <CrudPage title={t('approvalLog.title')} api={pageApi} columns={columns} searchFields={searchFields} />;
 }

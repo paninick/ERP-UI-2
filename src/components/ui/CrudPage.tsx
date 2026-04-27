@@ -1,5 +1,5 @@
-import { ReactNode, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ReactNode, useEffect, useState } from 'react';
+import { Download, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCrud } from '@/hooks/useCrud';
 import { confirm } from './ConfirmDialog';
@@ -7,6 +7,7 @@ import BaseModal from './BaseModal';
 import BaseTable from './BaseTable';
 import Pagination from './Pagination';
 import SearchForm, { SearchField } from './SearchForm';
+import { exportToCsv } from '@/utils/exportToCsv';
 
 interface Column {
   key: string;
@@ -33,7 +34,7 @@ interface CrudPageProps {
   };
   columns: Column[];
   searchFields?: SearchFieldConfig[];
-  FormComponent: React.ComponentType<{
+  FormComponent?: React.ComponentType<{
     initialValues?: any;
     onSubmit: (values: any) => void;
     onCancel: () => void;
@@ -42,6 +43,7 @@ interface CrudPageProps {
   extraActions?: (record: any) => ReactNode;
   isEditDisabled?: (record: any) => boolean;
   isDeleteDisabled?: (record: any) => boolean;
+  batchActions?: (selectedRowKeys: string[]) => ReactNode;
 }
 
 export default function CrudPage({
@@ -54,6 +56,7 @@ export default function CrudPage({
   extraActions,
   isEditDisabled,
   isDeleteDisabled,
+  batchActions,
 }: CrudPageProps) {
   const { t } = useTranslation();
   const {
@@ -77,6 +80,20 @@ export default function CrudPage({
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!FormComponent) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        setEditingRecord(null);
+        setModalOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [FormComponent]);
 
   const allColumns = [
     ...columns,
@@ -86,17 +103,19 @@ export default function CrudPage({
       width: '160px',
       render: (_: any, record: any) => (
         <div className="flex gap-1">
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              setEditingRecord(record);
-              setModalOpen(true);
-            }}
-            disabled={Boolean(isEditDisabled?.(record))}
-            className="rounded px-2 py-2 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-          >
-            {t('common.edit')}
-          </button>
+          {FormComponent && (
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                setEditingRecord(record);
+                setModalOpen(true);
+              }}
+              disabled={Boolean(isEditDisabled?.(record))}
+              className="rounded px-2 py-2 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+            >
+              {t('common.edit')}
+            </button>
+          )}
           <button
             onClick={async (event) => {
               event.stopPropagation();
@@ -129,17 +148,51 @@ export default function CrudPage({
     setModalOpen(false);
   };
 
+  const handleBatchDelete = async () => {
+    if (
+      await confirm(t('crud.confirmBatchDelete', { count: selectedRowKeys.length }))
+    ) {
+      await handleDelete(selectedRowKeys.join(','));
+      setSelectedRowKeys([]);
+    }
+  };
+
+  const handleExport = () => {
+    const exportCols = columns.map((c) => ({ key: c.key, title: c.title }));
+    const exportData = data.map((row) => {
+      const item: Record<string, any> = {};
+      columns.forEach((col) => {
+        const val = row[col.key];
+        item[col.key] = val != null ? String(val) : '';
+      });
+      return item;
+    });
+    exportToCsv(exportCols, exportData, title);
+  };
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-        <button
-          onClick={handleAddNew}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-3 text-sm text-white hover:bg-indigo-700 min-h-[44px]"
-        >
-          <Plus size={14} />
-          {t('common.add')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            disabled={data.length === 0}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 min-h-[44px]"
+          >
+            <Download size={14} />
+            {t('common.exportCsv')}
+          </button>
+          {FormComponent && (
+            <button
+              onClick={handleAddNew}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-3 text-sm text-white hover:bg-indigo-700 min-h-[44px]"
+            >
+              <Plus size={14} />
+              {t('common.add')}
+            </button>
+          )}
+        </div>
       </div>
 
       {searchFields.length > 0 && (
@@ -188,7 +241,39 @@ export default function CrudPage({
         </SearchForm>
       )}
 
-      <BaseTable columns={allColumns} data={data} loading={loading} rowKey={rowKey} />
+      {selectedRowKeys.length > 0 && (
+        <div className="mb-3 flex items-center gap-3 rounded-lg bg-indigo-50 px-4 py-2.5 text-sm">
+          <span className="text-indigo-700">
+            {t('common.selectedCount', { count: selectedRowKeys.length })}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBatchDelete}
+              className="rounded px-3 py-1 text-xs text-red-600 hover:bg-red-100"
+            >
+              {t('common.batchDelete')}
+            </button>
+            {batchActions?.(selectedRowKeys)}
+          </div>
+          <button
+            onClick={() => setSelectedRowKeys([])}
+            className="ml-auto rounded px-3 py-1 text-xs text-slate-500 hover:bg-indigo-100"
+          >
+            {t('common.deselectAll')}
+          </button>
+        </div>
+      )}
+
+      <BaseTable
+        columns={allColumns}
+        data={data}
+        loading={loading}
+        rowKey={rowKey}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: setSelectedRowKeys,
+        }}
+      />
       <Pagination
         current={pagination.pageNum}
         pageSize={pagination.pageSize}
@@ -196,17 +281,19 @@ export default function CrudPage({
         onChange={handlePageChange}
       />
 
-      <BaseModal
-        open={modalOpen}
-        title={editingRecord ? t('crud.editTitle', { title }) : t('crud.addTitle', { title })}
-        onClose={() => setModalOpen(false)}
-      >
-        <FormComponent
-          initialValues={editingRecord}
-          onSubmit={handleModalOk}
-          onCancel={() => setModalOpen(false)}
-        />
-      </BaseModal>
+      {FormComponent && (
+        <BaseModal
+          open={modalOpen}
+          title={editingRecord ? t('crud.editTitle', { title }) : t('crud.addTitle', { title })}
+          onClose={() => setModalOpen(false)}
+        >
+          <FormComponent
+            initialValues={editingRecord}
+            onSubmit={handleModalOk}
+            onCancel={() => setModalOpen(false)}
+          />
+        </BaseModal>
+      )}
     </div>
   );
 }

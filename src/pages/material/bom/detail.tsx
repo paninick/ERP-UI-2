@@ -313,7 +313,7 @@ export default function BomDetailPage() {
         </div>
       </section>
 
-      <ApprovalTimeline title="BOM 审批记录" logs={approvalLogs} loading={approvalLoading} />
+      <ApprovalTimeline title={t('page.bomDetail.approvalLog')} logs={approvalLogs} loading={approvalLoading} />
 
       <section className="rounded-3xl bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">

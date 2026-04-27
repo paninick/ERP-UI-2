@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import { useTranslation } from 'react-i18next';
 import {AlertTriangle, CheckCircle, Circle, Clock, Truck} from 'lucide-react';
 import * as jobProcessApi from '@/api/produceJobProcess';
 import {useDictOptions} from '@/hooks/useDictOptions';
@@ -42,6 +43,8 @@ function normalizeProcessRows(response: any): ProcessStep[] {
 }
 
 export default function ProcessFlow({jobId}: {jobId: number}) {
+  const { t } = useTranslation();
+  const S = 'page.jobProcess.processFlow';
   const [steps, setSteps] = useState<ProcessStep[]>([]);
   const [loading, setLoading] = useState(true);
   const processStatus = useDictOptions('erp_process_status');
@@ -70,7 +73,7 @@ export default function ProcessFlow({jobId}: {jobId: number}) {
   }
 
   if (steps.length === 0) {
-    return <p className="py-8 text-center text-sm text-slate-400">暂无工序数据，可能尚未初始化工序队列。</p>;
+    return <p className="py-8 text-center text-sm text-slate-400">{t(`${S}.empty`)}</p>;
   }
 
   const progressPercent = Math.round((progressedCount / steps.length) * 100);
@@ -79,8 +82,8 @@ export default function ProcessFlow({jobId}: {jobId: number}) {
     <div>
       <div className="mb-4">
         <div className="mb-1 flex justify-between text-xs text-slate-500">
-          <span>进度</span>
-          <span>{progressedCount}/{steps.length} 道工序已完成报工（{progressPercent}%）</span>
+          <span>{t(`${S}.progress`)}</span>
+          <span>{t(`${S}.progressText`, { progressed: progressedCount, total: steps.length, percent: progressPercent })}</span>
         </div>
         <div className="h-2 w-full rounded-full bg-slate-100">
           <div
@@ -126,10 +129,10 @@ export default function ProcessFlow({jobId}: {jobId: number}) {
                 <div className="flex items-center gap-2">
                   <Icon size={14} className={step.isOutsource === '1' ? 'text-purple-500' : 'text-slate-500'} />
                   <span className="text-sm font-medium text-slate-800">
-                    {step.processName || `工序 ${step.processSeq}`}
+                    {step.processName || t(`${S}.processFallback`, { seq: step.processSeq })}
                   </span>
                   {step.isOutsource === '1' && (
-                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] text-purple-600">外协</span>
+                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] text-purple-600">{t(`${S}.outsource`)}</span>
                   )}
                   <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${tag.color}`}>
                     {tag.label}
@@ -138,15 +141,15 @@ export default function ProcessFlow({jobId}: {jobId: number}) {
 
                 {(step.inQty > 0 || step.outQty > 0) && (
                   <div className="mt-1 flex gap-4 text-xs text-slate-500">
-                    <span>收 {step.inQty}</span>
-                    <span>出 {step.outQty}</span>
-                    {step.defectQty > 0 && <span className="text-red-500">次品 {step.defectQty}</span>}
-                    {step.lossQty > 0 && <span className="text-amber-500">损耗 {step.lossQty}</span>}
+                    <span>{t(`${S}.labels.inQty`)} {step.inQty}</span>
+                    <span>{t(`${S}.labels.outQty`)} {step.outQty}</span>
+                    {step.defectQty > 0 && <span className="text-red-500">{t(`${S}.labels.defectQty`)} {step.defectQty}</span>}
+                    {step.lossQty > 0 && <span className="text-amber-500">{t(`${S}.labels.lossQty`)} {step.lossQty}</span>}
                   </div>
                 )}
 
                 {step.employeeName && (
-                  <p className="mt-0.5 text-xs text-slate-400">操作工：{step.employeeName}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">{t(`${S}.labels.operator`)}{step.employeeName}</p>
                 )}
               </div>
             </div>

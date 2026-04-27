@@ -45,7 +45,7 @@ export default function Sidebar() {
         { key: 'salesOrder', label: t('nav.salesOrder'), path: '/sales/order' },
         { key: 'customer', label: t('nav.customer'), path: '/customer' },
         { key: 'supplier', label: t('nav.supplier'), path: '/supplier' },
-        { key: 'style', label: '款号档案', path: '/style' },
+        { key: 'style', label: t('nav.style'), path: '/style' },
       ],
     },
     {
@@ -62,6 +62,7 @@ export default function Sidebar() {
         { key: 'process', label: t('nav.process'), path: '/production/process' },
         { key: 'notice', label: t('nav.notice'), path: '/production/notice' },
         { key: 'gantt', label: t('nav.gantt'), path: '/production/gantt' },
+        { key: 'workCenter', label: t('nav.workCenter'), path: '/production/work-center' },
       ],
     },
     {
@@ -82,8 +83,9 @@ export default function Sidebar() {
         { key: 'stockIn', label: t('nav.stockIn'), path: '/inventory/stock-in' },
         { key: 'stockOut', label: t('nav.stockOut'), path: '/inventory/stock-out' },
         { key: 'inventoryList', label: t('nav.inventoryList'), path: '/inventory/list' },
-        { key: 'shipment', label: '出货单', path: '/inventory/shipment' },
+        { key: 'shipment', label: t('nav.shipment'), path: '/inventory/shipment' },
         { key: 'warehouse', label: t('nav.warehouse'), path: '/warehouse' },
+        { key: 'warehouseLocation', label: t('nav.warehouseLocation'), path: '/warehouse/location' },
       ],
     },
     {
@@ -102,9 +104,9 @@ export default function Sidebar() {
       children: [
         { key: 'qualityCheck', label: t('nav.qualityCheck'), path: '/quality' },
         { key: 'qualityInspection', label: t('nav.qualityRelease'), path: '/quality/inspection' },
-        { key: 'inspectionBooking', label: '检品预约', path: '/quality/inspection-booking' },
-        { key: 'japanRelease', label: '日单放行', path: '/quality/japan-release' },
-        { key: 'productTrace', label: '产品追溯', path: '/quality/product-trace' },
+        { key: 'inspectionBooking', label: t('nav.inspectionBooking'), path: '/quality/inspection-booking' },
+        { key: 'japanRelease', label: t('nav.japanRelease'), path: '/quality/japan-release' },
+        { key: 'productTrace', label: t('nav.productTrace'), path: '/quality/product-trace' },
       ],
     },
     {
@@ -130,8 +132,8 @@ export default function Sidebar() {
         { key: 'systemUser', label: t('nav.systemUser'), path: '/system/user' },
         { key: 'systemRole', label: t('nav.systemRole'), path: '/system/role' },
         { key: 'systemDict', label: t('nav.systemDict'), path: '/system/dict' },
-        { key: 'systemOrg', label: '组织架构', path: '/system/org' },
-        { key: 'systemApprovalLog', label: '审批日志', path: '/system/approvallog' },
+        { key: 'systemOrg', label: t('nav.systemOrg'), path: '/system/org' },
+        { key: 'systemApprovalLog', label: t('nav.approvalLog'), path: '/system/approvallog' },
         { key: 'abnormal', label: t('nav.abnormal'), path: '/biz/abnormal' },
       ],
     },

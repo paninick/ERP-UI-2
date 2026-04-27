@@ -48,26 +48,29 @@ export default function StockOutPage() {
     { value: '1', label: '已确认' },
   ]);
 
+  const S = 'stockOutLabels';
+  const D = 'stockOutLabels.detail';
+
   const columns = [
     { key: 'sn', title: t('page.stockOut.columns.stockOutNo') },
     {
       key: 'srcBillNo',
-      title: '来源单据',
+      title: t(`${S}.srcBillNo`),
       render: (_: any, record: any) => record.srcBillNo || record.purchaseSn || '-',
     },
     {
       key: 'outType',
-      title: '出库类型',
+      title: t(`${S}.outType`),
       render: (value: string) => {
         const tag = outType.toTag(String(value), 'bg-amber-100 text-amber-700');
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
       },
     },
-    { key: 'bulkOrderNo', title: '大货款号' },
-    { key: 'applicant', title: '申请人' },
+    { key: 'bulkOrderNo', title: t(`${S}.bulkOrderNo`) },
+    { key: 'applicant', title: t(`${S}.applicant`, '申请人') },
     {
       key: 'confirmStatus',
-      title: '确认状态',
+      title: t(`${S}.confirmStatus`),
       render: (value: string) => {
         const tag = confirmStatus.toTag(String(value), 'bg-slate-100 text-slate-600');
         return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
@@ -78,24 +81,27 @@ export default function StockOutPage() {
 
   const searchFields = [
     { name: 'sn', label: t('page.stockOut.columns.stockOutNo') },
-    { name: 'purchaseSn', label: '采购单号' },
-    { name: 'bulkOrderNo', label: '大货款号' },
-    { name: 'confirmStatus', label: '确认状态', type: 'select' as const, options: confirmStatus.options },
+    { name: 'purchaseSn', label: t(`${S}.purchaseSn`, '采购单号') },
+    { name: 'bulkOrderNo', label: t(`${S}.bulkOrderNo`) },
+    { name: 'confirmStatus', label: t(`${S}.confirmStatus`), type: 'select' as const, options: confirmStatus.options },
   ];
 
   const formFields = [
-    { name: 'sn', label: t('page.stockOut.columns.stockOutNo'), required: true },
+    { name: 'sn', label: t('page.stockOut.columns.stockOutNo'), required: true, group: t(`${S}.groupBasic`) },
     {
       name: 'outType',
-      label: '出库类型',
+      label: t(`${S}.outType`),
       type: 'select' as const,
       required: true,
       options: outType.options,
+      group: t(`${S}.groupBasic`),
     },
-    { name: 'outDate', label: t('page.stockOut.columns.stockOutDate'), type: 'date' as const, required: true },
+    { name: 'outDate', label: t('page.stockOut.columns.stockOutDate'), type: 'date' as const, required: true, group: t(`${S}.groupBasic`) },
+    { name: 'applicant', label: t(`${S}.applicant`, '申请人'), group: t(`${S}.groupBasic`) },
+    { name: 'applyDate', label: t(`${S}.applyDate`, '申请日期'), type: 'date' as const, group: t(`${S}.groupBasic`) },
     {
       name: 'srcBillType',
-      label: '来源类型',
+      label: t(`${S}.srcBillType`),
       type: 'select' as const,
       options: [
         { value: 'purchase', label: '采购单' },
@@ -103,11 +109,12 @@ export default function StockOutPage() {
         { value: 'produce_job', label: '生产工单' },
         { value: 'manual', label: '手工出库' },
       ],
+      group: t(`${S}.groupSource`),
     },
-    { name: 'srcBillNo', label: '来源单号' },
+    { name: 'srcBillNo', label: t(`${S}.srcBillNo`), group: t(`${S}.groupSource`) },
     {
       name: 'purchaseId',
-      label: '关联采购单',
+      label: t(`${S}.purchaseId`, '关联采购单'),
       type: 'select' as const,
       loadOptions: async () => {
         const res: any = await purchaseApi.listPurchase({ pageNum: 1, pageSize: 200 });
@@ -116,11 +123,12 @@ export default function StockOutPage() {
           label: `${item.sn || item.id}${item.supplierName ? ` / ${item.supplierName}` : ''}`,
         }));
       },
+      group: t(`${S}.groupSource`),
     },
-    { name: 'purchaseSn', label: '采购单号' },
+    { name: 'purchaseSn', label: t(`${S}.purchaseSn`, '采购单号'), group: t(`${S}.groupSource`) },
     {
       name: 'planId',
-      label: '关联生产计划',
+      label: t(`${S}.planId`, '关联生产计划'),
       type: 'select' as const,
       loadOptions: async () => {
         const res: any = await productionApi.listProducePlan({ pageNum: 1, pageSize: 200 });
@@ -129,19 +137,19 @@ export default function StockOutPage() {
           label: `${item.planNo || item.id}${item.styleCode ? ` / ${item.styleCode}` : ''}`,
         }));
       },
+      group: t(`${S}.groupSource`),
     },
-    { name: 'bulkOrderNo', label: '大货款号' },
-    { name: 'applicant', label: '申请人' },
-    { name: 'applyDate', label: '申请日期', type: 'date' as const },
+    { name: 'bulkOrderNo', label: t(`${S}.bulkOrderNo`), group: t(`${S}.groupSource`) },
     {
       name: 'confirmStatus',
-      label: '确认状态',
+      label: t(`${S}.confirmStatus`),
       type: 'select' as const,
       options: confirmStatus.options,
+      group: t(`${S}.groupConfirm`),
     },
-    { name: 'confirmBy', label: '确认人' },
-    { name: 'confirmTime', label: '确认时间', type: 'date' as const },
-    { name: 'outDescription', label: '出库说明', type: 'textarea' as const },
+    { name: 'confirmBy', label: t(`${S}.confirmBy`), group: t(`${S}.groupConfirm`) },
+    { name: 'confirmTime', label: t(`${S}.confirmTime`), type: 'date' as const, group: t(`${S}.groupConfirm`) },
+    { name: 'outDescription', label: t(`${S}.outDescription`), type: 'textarea' as const },
     { name: 'remark', label: t('page.stockOut.columns.remark'), type: 'textarea' as const },
   ];
 
@@ -151,31 +159,31 @@ export default function StockOutPage() {
   ];
 
   const detailColumns = [
-    { key: 'sn', title: '出库单号' },
-    { key: 'materialId', title: '物料ID' },
+    { key: 'sn', title: t(`${D}.entryNo`, '出库单号') },
+    { key: 'materialId', title: t(`${D}.materialId`, '物料ID') },
     {
       key: 'materialType',
-      title: '物料类型',
+      title: t(`${S}.materialType`),
       render: (value: string) => {
         const option = materialTypeOptions.find(o => o.value === String(value));
         return option?.label || value;
       },
     },
-    { key: 'materialNo', title: '物料编号' },
-    { key: 'name', title: '名称' },
-    { key: 'count', title: '数量' },
-    { key: 'composition', title: '成分' },
-    { key: 'width', title: '门幅' },
-    { key: 'weight', title: '克重' },
-    { key: 'substance', title: '辅料成分' },
-    { key: 'size', title: '规格' },
-    { key: 'warehouseId', title: '仓库' },
-    { key: 'warehouseAreaId', title: '库区' },
-    { key: 'warehouseLocationId', title: '库位' },
-    { key: 'saveLocation', title: '存放位置' },
+    { key: 'materialNo', title: t(`${D}.materialNo`, '物料编号') },
+    { key: 'name', title: t(`${D}.materialName`, '名称') },
+    { key: 'count', title: t(`${D}.count`, '数量') },
+    { key: 'composition', title: t(`${D}.composition`, '成分') },
+    { key: 'width', title: t(`${D}.width`, '门幅') },
+    { key: 'weight', title: t(`${D}.weight`, '克重') },
+    { key: 'substance', title: t(`${D}.substance`, '辅料成分') },
+    { key: 'size', title: t(`${D}.size`, '规格') },
+    { key: 'warehouseId', title: t(`${D}.warehouse`, '仓库') },
+    { key: 'warehouseAreaId', title: t(`${D}.area`, '库区') },
+    { key: 'warehouseLocationId', title: t(`${D}.location`, '库位') },
+    { key: 'saveLocation', title: t(`${D}.saveLocation`, '存放位置') },
     {
       key: 'consumeAction',
-      title: '关联用料',
+      title: t(`${D}.consumeAction`, '关联用料'),
       render: (_: any, record: any) => (
         <button
           type="button"
@@ -185,29 +193,29 @@ export default function StockOutPage() {
           }}
           className="rounded px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50"
         >
-          查看关联用料
+          {t(`${D}.viewConsume`, '查看关联用料')}
         </button>
       ),
     },
   ];
 
   const consumeColumns = [
-    { key: 'id', title: '用料ID' },
-    { key: 'jobId', title: '生产工单ID' },
-    { key: 'jobProcessId', title: '工序快照ID' },
-    { key: 'reportLogId', title: '报工事件ID' },
-    { key: 'materialCode', title: '物料编号' },
-    { key: 'materialName', title: '物料名称' },
-    { key: 'materialType', title: '物料类型' },
-    { key: 'batchNo', title: '批次' },
-    { key: 'actualQty', title: '实际用量' },
-    { key: 'actualLossQty', title: '实际损耗' },
-    { key: 'unitPrice', title: '单价' },
-    { key: 'theoreticalCost', title: '理论成本' },
-    { key: 'actualCost', title: '实际成本' },
+    { key: 'id', title: t(`${D}.consumeId`, '用料ID') },
+    { key: 'jobId', title: t(`${D}.jobId`, '生产工单ID') },
+    { key: 'jobProcessId', title: t(`${D}.jobProcessId`, '工序快照ID') },
+    { key: 'reportLogId', title: t(`${D}.reportLogId`, '报工事件ID') },
+    { key: 'materialCode', title: t(`${D}.materialNo`, '物料编号') },
+    { key: 'materialName', title: t(`${D}.materialName`, '物料名称') },
+    { key: 'materialType', title: t(`${S}.materialType`) },
+    { key: 'batchNo', title: t(`${D}.batchNo`, '批次') },
+    { key: 'actualQty', title: t(`${D}.actualQty`, '实际用量') },
+    { key: 'actualLossQty', title: t(`${D}.actualLossQty`, '实际损耗') },
+    { key: 'unitPrice', title: t(`${D}.price`, '单价') },
+    { key: 'theoreticalCost', title: t(`${D}.theoreticalCost`, '理论成本') },
+    { key: 'actualCost', title: t(`${D}.actualCost`, '实际成本') },
     {
       key: 'costDiff',
-      title: '成本偏差',
+      title: t(`${D}.costDiff`, '成本偏差'),
       render: (value: any) => {
         const amount = Number(value || 0);
         return (
@@ -219,15 +227,15 @@ export default function StockOutPage() {
     },
     {
       key: 'isOverLimit',
-      title: '超耗',
-      render: (value: string) => (String(value) === '1' ? '是' : '否'),
+      title: t(`${D}.isOverLimit`, '超耗'),
+      render: (value: string) => (String(value) === '1' ? t('common.yes') : t('common.no')),
     },
-    { key: 'approvalStatus', title: '审批状态' },
+    { key: 'approvalStatus', title: t(`${D}.approvalStatus`, '审批状态') },
   ];
 
   const handleViewDetail = async (record: any) => {
     setDetailOpen(true);
-    setDetailTitle(`出库明细 - ${record.sn || record.id}`);
+    setDetailTitle(`${t(`${S}.detailTitle`)} - ${record.sn || record.id}`);
     setDetailLoading(true);
     try {
       const res: any = await inventoryApi.listStockOutItemByOutId(Number(record.id));
@@ -241,7 +249,7 @@ export default function StockOutPage() {
 
   const handleViewConsume = async (itemRecord: any) => {
     setConsumeOpen(true);
-    setConsumeTitle(`关联用料 - ${itemRecord.materialNo || itemRecord.name || itemRecord.id}`);
+    setConsumeTitle(`${t(`${D}.consumeTitle`, '关联用料')} - ${itemRecord.materialNo || itemRecord.name || itemRecord.id}`);
     setConsumeLoading(true);
     try {
       const res: any = await produceMaterialConsumeApi.listProduceMaterialConsumeByStockOutItem(Number(itemRecord.id));
@@ -256,7 +264,7 @@ export default function StockOutPage() {
   const handleSyncConsume = async (record: any) => {
     const stockOutId = Number(record.id);
     if (!stockOutId) {
-      toast.error('出库单ID无效');
+      toast.error(t(`${S}.invalidId`, '出库单ID无效'));
       return;
     }
     setSyncingStockOutId(stockOutId);
@@ -264,11 +272,11 @@ export default function StockOutPage() {
       const res: any = await produceMaterialConsumeApi.syncProduceMaterialConsumeByStockOut(stockOutId);
       const data = res?.data || res || {};
       toast.success(
-        `用料基线同步完成：新增 ${Number(data.insertedCount || 0)} 条，更新 ${Number(data.updatedCount || 0)} 条`
+        t(`${S}.syncSuccess`, '用料基线同步完成：新增 {{inserted}} 条，更新 {{updated}} 条', { inserted: data.insertedCount || 0, updated: data.updatedCount || 0 })
       );
       await handleViewDetail(record);
     } catch (error: any) {
-      toast.error(error?.message || '用料基线同步失败');
+      toast.error(error?.message || t(`${S}.syncFailed`, '用料基线同步失败'));
     } finally {
       setSyncingStockOutId(null);
     }
@@ -292,7 +300,7 @@ export default function StockOutPage() {
               }}
               className="rounded px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50"
             >
-              查看明细
+              {t(`${S}.detailView`)}
             </button>
             <button
               type="button"
@@ -303,7 +311,7 @@ export default function StockOutPage() {
               disabled={syncingStockOutId === Number(record.id)}
               className="rounded px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
             >
-              {syncingStockOutId === Number(record.id) ? '同步中...' : '同步用料'}
+              {syncingStockOutId === Number(record.id) ? t(`${S}.syncing`, '同步中...') : t(`${S}.syncConsume`, '同步用料')}
             </button>
           </>
         )}
@@ -311,7 +319,7 @@ export default function StockOutPage() {
 
       <BaseModal
         open={detailOpen}
-        title={detailTitle || '出库明细'}
+        title={detailTitle || t(`${S}.detailTitle`)}
         onClose={() => setDetailOpen(false)}
         width="1080px"
       >
@@ -320,7 +328,7 @@ export default function StockOutPage() {
 
       <BaseModal
         open={consumeOpen}
-        title={consumeTitle || '关联用料'}
+        title={consumeTitle || t(`${D}.consumeTitle`, '关联用料')}
         onClose={() => setConsumeOpen(false)}
         width="1200px"
       >

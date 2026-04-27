@@ -47,6 +47,8 @@ export default function PiecewagePage() {
   });
   const [generateMonth, setGenerateMonth] = useState(new Date().toISOString().slice(0, 7));
 
+  const PA = 'page.piecewageActions';
+
   const confirmStatus = useDictOptions('erp_confirm_status', [
     { value: '0', label: t('page.piecewage.status.pending') },
     { value: '1', label: t('page.piecewage.status.confirmed') },
@@ -138,7 +140,7 @@ export default function PiecewagePage() {
       setDetailRows(response?.data || []);
     } catch (error: any) {
       setDetailRows([]);
-      toast.error(error.message || '加载工资明细失败');
+      toast.error(error.message || t('page.piecewage.loadDetailFailed', '加载工资明细失败'));
     } finally {
       setDetailLoading(false);
     }
@@ -146,11 +148,9 @@ export default function PiecewagePage() {
 
   const handleConfirmAction = async (record: any, action: 'approve' | 'reject') => {
     const actorName = getApprovalActorName(user);
-    const actionText = action === 'approve' ? '确认' : '反确认';
-    const confirmed = await confirm(`确认对 ${record.employeeName || '-'} 的 ${record.wageMonth || '-'} 工资执行“${actionText}”吗？`);
-    if (!confirmed) {
-      return;
-    }
+    const actionText = action === 'approve' ? t(`${PA}.confirm`) : t(`${PA}.unconfirm`);
+    const confirmed = await confirm(t(`${PA}.confirmPrompt`, { name: record.employeeName || '-', month: record.wageMonth || '-', action: actionText }));
+    if (!confirmed) return;
 
     const nextStatus = action === 'approve'
       ? resolveApprovalValue(confirmStatus.options, 'approved', '1')
@@ -174,41 +174,35 @@ export default function PiecewagePage() {
         toStatus: String(nextStatus || ''),
         actionBy: actorName,
       })).catch(() => null);
-      toast.success(action === 'approve' ? '计件工资已确认' : '计件工资已反确认');
+      toast.success(action === 'approve' ? t(`${PA}.confirmSuccess`) : t(`${PA}.unconfirmSuccess`));
       if (logOpen && currentRecord?.id === record.id) {
         loadApprovalLogs({ ...record, status: nextStatus });
       }
       await refresh();
     } catch (error: any) {
-      toast.error(error.message || '计件工资确认操作失败');
+      toast.error(error.message || t('approval.actionFailed'));
     }
   };
 
-  const handleSearchSubmit = () => {
-    handleSearch(searchParams);
-  };
+  const handleSearchSubmit = () => { handleSearch(searchParams); };
 
   const handleResetSubmit = () => {
-    setSearchParams({
-      employeeName: '',
-      wageMonth: '',
-      status: '',
-    });
+    setSearchParams({ employeeName: '', wageMonth: '', status: '' });
     handleReset();
   };
 
   const handleAutoGenerate = async () => {
     if (!generateMonth) {
-      toast.error('请选择工资月份');
+      toast.error(t(`${PA}.selectMonth`, '请选择工资月份'));
       return;
     }
     setAutoGenerating(true);
     try {
       const response: any = await piecewageApi.autoGeneratePiecewage(generateMonth);
-      toast.success(response?.msg || '工资汇总生成成功');
+      toast.success(response?.msg || t(`${PA}.generateSuccess`));
       await refresh();
     } catch (error: any) {
-      toast.error(error.message || '工资汇总生成失败');
+      toast.error(error.message || t(`${PA}.generateFailed`, '工资汇总生成失败'));
     } finally {
       setAutoGenerating(false);
     }
@@ -232,7 +226,7 @@ export default function PiecewagePage() {
               disabled={autoGenerating}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {autoGenerating ? '生成中...' : '按月自动生成'}
+              {autoGenerating ? t(`${PA}.generating`) : t(`${PA}.autoGenerate`)}
             </button>
           </div>
         </div>
@@ -262,9 +256,7 @@ export default function PiecewagePage() {
             >
               <option value="">{t('common.all')}</option>
               {confirmStatus.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </SearchField>
@@ -279,49 +271,21 @@ export default function PiecewagePage() {
               width: '260px',
               render: (_: any, record: any) => (
                 <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openDetails(record);
-                    }}
-                    className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
-                  >
-                    明细
+                  <button type="button" onClick={(event) => { event.stopPropagation(); openDetails(record); }} className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50">
+                    {t(`${PA}.detail`)}
                   </button>
                   {!isConfirmedStatus(record.status, confirmStatus.options) && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleConfirmAction(record, 'approve');
-                      }}
-                      className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
-                    >
-                      确认
+                    <button type="button" onClick={(event) => { event.stopPropagation(); handleConfirmAction(record, 'approve'); }} className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50">
+                      {t(`${PA}.confirm`)}
                     </button>
                   )}
                   {isConfirmedStatus(record.status, confirmStatus.options) && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleConfirmAction(record, 'reject');
-                      }}
-                      className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50"
-                    >
-                      反确认
+                    <button type="button" onClick={(event) => { event.stopPropagation(); handleConfirmAction(record, 'reject'); }} className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50">
+                      {t(`${PA}.unconfirm`)}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      loadApprovalLogs(record);
-                    }}
-                    className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
-                  >
-                    记录
+                  <button type="button" onClick={(event) => { event.stopPropagation(); loadApprovalLogs(record); }} className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">
+                    {t(`${PA}.log`)}
                   </button>
                 </div>
               ),
@@ -331,26 +295,21 @@ export default function PiecewagePage() {
           loading={loading}
           rowKey="id"
         />
-        <Pagination
-          current={pagination.pageNum}
-          pageSize={pagination.pageSize}
-          total={pagination.total}
-          onChange={handlePageChange}
-        />
+        <Pagination current={pagination.pageNum} pageSize={pagination.pageSize} total={pagination.total} onChange={handlePageChange} />
       </div>
 
       <BaseModal
         open={logOpen}
-        title={`计件确认记录 - ${currentRecord?.employeeName || '-'} / ${currentRecord?.wageMonth || '-'}`}
+        title={`${t(`${PA}.log`)} - ${currentRecord?.employeeName || '-'} / ${currentRecord?.wageMonth || '-'}`}
         onClose={() => setLogOpen(false)}
         width="760px"
       >
-        <ApprovalTimeline title="计件确认记录" logs={approvalLogs} loading={logLoading} />
+        <ApprovalTimeline title={t(`${PA}.log`)} logs={approvalLogs} loading={logLoading} />
       </BaseModal>
 
       <BaseModal
         open={detailOpen}
-        title={`工资明细 - ${currentRecord?.employeeName || '-'} / ${currentRecord?.wageMonth || '-'}`}
+        title={`${t(`${PA}.detail`)} - ${currentRecord?.employeeName || '-'} / ${currentRecord?.wageMonth || '-'}`}
         onClose={() => setDetailOpen(false)}
         width="960px"
       >

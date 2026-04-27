@@ -1,8 +1,9 @@
-import {Outlet} from 'react-router-dom';
-import {useTranslation} from 'react-i18next';
+import { useEffect } from 'react';
+import { Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import {useAppStore} from '@/stores/appStore';
+import { useAppStore } from '@/stores/appStore';
 import ToastContainer from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
@@ -10,6 +11,17 @@ import ErrorBoundary from '@/components/ui/ErrorBoundary';
 export default function MainLayout() {
   const { t } = useTranslation();
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
+  const setAutoCollapse = useAppStore((s) => s.setAutoCollapse);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 1023px)');
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setAutoCollapse(e.matches);
+    };
+    handleChange(mql);
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, [setAutoCollapse]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -22,7 +34,7 @@ export default function MainLayout() {
       <Sidebar />
       <div className={`transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-60'}`}>
         <Header />
-        <main id="main-content" className="p-6">
+        <main id="main-content" className="p-4 md:p-6">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

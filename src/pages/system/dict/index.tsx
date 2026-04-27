@@ -17,47 +17,47 @@ export default function SystemDictPage() {
   const { t } = useTranslation();
 
   const statusOptions = [
-    { value: '0', label: '正常' },
-    { value: '1', label: '停用' },
+    { value: '0', label: t('common.normal', '正常') },
+    { value: '1', label: t('common.disabled', '停用') },
   ];
 
   const columns = [
-    { key: 'dictId', title: '字典编号', width: '100px' },
-    { key: 'dictName', title: '字典名称' },
-    { key: 'dictType', title: '字典类型' },
+    { key: 'dictId', title: t('systemDict.dictName'), width: '100px' },
+    { key: 'dictName', title: t('systemDict.dictName') },
+    { key: 'dictType', title: t('systemDict.dictType') },
     {
       key: 'status',
-      title: '状态',
+      title: t('systemDict.status'),
       render: (value: string) => {
         const isNormal = value === '0';
         return (
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isNormal ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-            {isNormal ? '正常' : '停用'}
+            {isNormal ? t('common.normal', '正常') : t('common.disabled', '停用')}
           </span>
         );
       },
     },
-    { key: 'remark', title: '备注' },
-    { key: 'createTime', title: '创建时间' },
+    { key: 'remark', title: t('systemDict.remark') },
+    { key: 'createTime', title: t('common.createTime') },
   ];
 
   const searchFields = [
-    { name: 'dictName', label: '字典名称' },
-    { name: 'dictType', label: '字典类型' },
+    { name: 'dictName', label: t('systemDict.dictName') },
+    { name: 'dictType', label: t('systemDict.dictType') },
     {
       name: 'status',
-      label: '状态',
+      label: t('systemDict.status'),
       type: 'select' as const,
       options: statusOptions,
     },
   ];
 
   const formFields = [
-    { name: 'dictName', label: '字典名称', required: true },
-    { name: 'dictType', label: '字典类型', required: true },
+    { name: 'dictName', label: t('systemDict.dictName'), required: true },
+    { name: 'dictType', label: t('systemDict.dictType'), required: true },
     {
       name: 'status',
-      label: '状态',
+      label: t('systemDict.status'),
       type: 'select' as const,
       options: statusOptions,
     },
@@ -66,7 +66,7 @@ export default function SystemDictPage() {
 
   return (
     <CrudPage
-      title="字典管理"
+      title={t('systemDict.title')}
       api={api}
       columns={columns}
       searchFields={searchFields}
@@ -86,7 +86,7 @@ export default function SystemDictPage() {
           }}
           className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
         >
-          数据
+          {t('systemDict.dataButton')}
         </button>
       )}
     />

@@ -182,7 +182,7 @@ export default function ProducePlanPrintPage() {
         </section>
 
         <div className="mt-6">
-          <ApprovalTimeline title="计划审批记录" logs={approvalLogs} loading={approvalLoading} />
+          <ApprovalTimeline title={t('page.planPrint.approvalLog')} logs={approvalLogs} loading={approvalLoading} />
         </div>
       </section>
     </div>
