@@ -27,6 +27,7 @@ export default function Header() {
         <input
           type="text"
           placeholder={t('searchPlaceholder')}
+          aria-label={t('searchPlaceholder')}
           className="w-48 bg-transparent text-sm outline-none"
         />
       </div>
@@ -51,7 +52,7 @@ export default function Header() {
             {t('langJa')}
           </button>
         </div>
-        <button className="relative rounded-lg p-2 hover:bg-slate-100">
+        <button aria-label={t('nav.notifications')} className="relative rounded-lg p-2 hover:bg-slate-100">
           <Bell size={18} className="text-slate-600" />
           <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
         </button>
@@ -63,8 +64,8 @@ export default function Header() {
         </div>
         <button
           onClick={handleLogout}
+          aria-label={t('logout')}
           className="rounded-lg p-2 hover:bg-slate-100"
-          title={t('logout')}
         >
           <LogOut size={18} className="text-slate-600" />
         </button>

@@ -1,4 +1,5 @@
 import { ReactNode, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -21,6 +22,8 @@ export default function BaseModal({
   width = '500px',
   loading,
 }: BaseModalProps) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => {
@@ -51,7 +54,7 @@ export default function BaseModal({
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
-              <button onClick={onClose} className="rounded-lg p-1 hover:bg-slate-100" aria-label="关闭">
+              <button onClick={onClose} className="rounded-lg p-1 hover:bg-slate-100" aria-label={t('common.close')}>
                 <X size={18} className="text-slate-500" />
               </button>
             </div>
@@ -64,14 +67,14 @@ export default function BaseModal({
                   onClick={onClose}
                   className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
                 >
-                  取消
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={onOk}
                   disabled={loading}
                   className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {loading ? '提交中...' : '确定'}
+                  {loading ? t('common.submitting') : t('common.confirm')}
                 </button>
               </div>
             )}

@@ -131,7 +131,7 @@ export default function SalesOrderPage() {
           <NavLink
             to={`/sales/order/print/${record.id}`}
             onClick={(event) => event.stopPropagation()}
-            className="rounded px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+            className="rounded px-2 py-2 text-xs text-slate-700 hover:bg-slate-100"
           >
             {t('common.print')}
           </NavLink>
@@ -140,7 +140,7 @@ export default function SalesOrderPage() {
               event.stopPropagation();
               navigate(`/sales/order/${record.id}`);
             }}
-            className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
+            className="rounded px-2 py-2 text-xs text-emerald-600 hover:bg-emerald-50"
           >
             {t('common.detail')}
           </button>
@@ -151,7 +151,7 @@ export default function SalesOrderPage() {
               setModalOpen(true);
             }}
             disabled={isApprovalLocked(record.orderStatus, orderStatus.options)}
-            className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+            className="rounded px-2 py-2 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
           >
             {t('common.edit')}
           </button>
@@ -163,7 +163,7 @@ export default function SalesOrderPage() {
               }
             }}
             disabled={isApprovalLocked(record.orderStatus, orderStatus.options)}
-            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+            className="rounded px-2 py-2 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
           >
             {t('common.delete')}
           </button>
@@ -173,7 +173,7 @@ export default function SalesOrderPage() {
                 event.stopPropagation();
                 handleApproval(record, 'submit');
               }}
-              className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+              className="rounded px-2 py-2 text-xs text-blue-600 hover:bg-blue-50"
             >
               {t('common.submit')}
             </button>
@@ -184,7 +184,7 @@ export default function SalesOrderPage() {
                 event.stopPropagation();
                 handleApproval(record, 'approve');
               }}
-              className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
+              className="rounded px-2 py-2 text-xs text-emerald-600 hover:bg-emerald-50"
             >
               {t('common.approve')}
             </button>
@@ -194,7 +194,7 @@ export default function SalesOrderPage() {
               event.stopPropagation();
               handleApproval(record, 'reject');
             }}
-            className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50"
+            className="rounded px-2 py-2 text-xs text-amber-600 hover:bg-amber-50"
           >
             {t('common.reject')}
           </button>
@@ -224,13 +224,13 @@ export default function SalesOrderPage() {
         <div className="flex gap-2">
           <button
             onClick={() => navigate('/sales/order/new')}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 min-h-[44px]"
           >
             {t('page.sales.businessDetail')}
           </button>
           <button
             onClick={handleAddNew}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-3 text-sm text-white hover:bg-indigo-700 min-h-[44px]"
           >
             <Plus size={14} />
             {t('common.add')}

@@ -74,6 +74,7 @@ export default function Login() {
               <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
+                autoComplete="username"
                 placeholder={t('username')}
                 aria-label={t('username')}
                 value={username}
@@ -85,6 +86,7 @@ export default function Login() {
               <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="password"
+                autoComplete="current-password"
                 placeholder={t('password')}
                 aria-label={t('password')}
                 value={password}

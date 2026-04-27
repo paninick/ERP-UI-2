@@ -1,5 +1,6 @@
 import {create} from 'zustand';
 import {motion, AnimatePresence} from 'framer-motion';
+import {useTranslation} from 'react-i18next';
 import {CheckCircle, XCircle, AlertTriangle, Info, X} from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -59,25 +60,26 @@ const ICON_COLORS: Record<ToastType, string> = {
 };
 
 export default function ToastContainer() {
+  const { t } = useTranslation();
   const toasts = useToastStore((s) => s.toasts);
   const removeToast = useToastStore((s) => s.removeToast);
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 w-80">
+    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 w-80" role="status" aria-live="polite">
       <AnimatePresence>
-        {toasts.map((t) => {
-          const Icon = ICONS[t.type];
+        {toasts.map((toast) => {
+          const Icon = ICONS[toast.type];
           return (
             <motion.div
-              key={t.id}
+              key={toast.id}
               initial={{ opacity: 0, x: 80, scale: 0.95 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 80, scale: 0.95 }}
-              className={`flex items-start gap-3 px-4 py-3 rounded-lg border shadow-lg ${COLORS[t.type]}`}
+              className={`flex items-start gap-3 px-4 py-3 rounded-lg border shadow-lg ${COLORS[toast.type]}`}
             >
-              <Icon size={18} className={`shrink-0 mt-0.5 ${ICON_COLORS[t.type]}`} />
-              <p className="flex-1 text-sm">{t.message}</p>
-              <button onClick={() => removeToast(t.id)} className="shrink-0 p-0.5 hover:opacity-60">
+              <Icon size={18} className={`shrink-0 mt-0.5 ${ICON_COLORS[toast.type]}`} />
+              <p className="flex-1 text-sm">{toast.message}</p>
+              <button onClick={() => removeToast(toast.id)} aria-label={t('common.close')} className="shrink-0 p-0.5 hover:opacity-60">
                 <X size={14} />
               </button>
             </motion.div>

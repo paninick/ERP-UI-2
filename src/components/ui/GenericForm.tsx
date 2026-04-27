@@ -32,6 +32,7 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
   const [form, setForm] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [asyncOptions, setAsyncOptions] = useState<Record<string, { value: string; label: string }[]>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const nextForm: Record<string, string> = {};
@@ -70,11 +71,15 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const newErrors: Record<string, string> = {};
     for (const field of fields) {
       if (field.required && !form[field.name]?.trim()) {
-        alert(t('common.requiredField', { field: field.label }));
-        return;
+        newErrors[field.name] = t('common.requiredField', { field: field.label });
       }
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
     }
     setLoading(true);
     try {
@@ -88,69 +93,97 @@ export default function GenericForm({ fields, initialValues, onSubmit, onCancel 
     }
   };
 
+  const clearError = (name: string) => {
+    if (errors[name]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
       {fields.map((field) => {
         const selectOptions = field.loadOptions
           ? (asyncOptions[field.name] || [])
           : (field.getOptions ? field.getOptions() : field.options) || [];
+        const errorId = `${field.name}-error`;
+        const hasError = !!errors[field.name];
 
         return (
-          <div key={field.name} className="flex items-center gap-3">
-            <label className="w-24 text-right text-sm text-slate-600">
-              {field.required && <span className="mr-1 text-red-500">*</span>}
-              {field.label}
-            </label>
-            {field.type === 'select' ? (
-              <select
-                value={form[field.name] || ''}
-                onChange={(event) => {
-                  const val = event.target.value;
-                  if (field.onFieldChange) {
-                    field.onFieldChange(field.name, val, setForm);
-                  } else {
-                    setForm((prev) => ({ ...prev, [field.name]: val }));
-                  }
-                }}
-                aria-label={field.label}
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-              >
-                <option value="">{t('common.pleaseSelect')}</option>
-                {selectOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            ) : field.type === 'textarea' ? (
-              <textarea
-                value={form[field.name] || ''}
-                onChange={(event) => {
-                  const val = event.target.value;
-                  if (field.onFieldChange) {
-                    field.onFieldChange(field.name, val, setForm);
-                  } else {
-                    setForm((prev) => ({ ...prev, [field.name]: val }));
-                  }
-                }}
-                aria-label={field.label}
-                className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-              />
-            ) : (
-              <input
-                type={field.type || 'text'}
-                value={form[field.name] || ''}
-                onChange={(event) => {
-                  const val = event.target.value;
-                  if (field.onFieldChange) {
-                    field.onFieldChange(field.name, val, setForm);
-                  } else {
-                    setForm((prev) => ({ ...prev, [field.name]: val }));
-                  }
-                }}
-                aria-label={field.label}
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-              />
+          <div key={field.name}>
+            <div className="flex items-center gap-3">
+              <label className="w-24 text-right text-sm text-slate-600">
+                {field.required && <span className="mr-1 text-red-500">*</span>}
+                {field.label}
+              </label>
+              {field.type === 'select' ? (
+                <select
+                  value={form[field.name] || ''}
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    clearError(field.name);
+                    if (field.onFieldChange) {
+                      field.onFieldChange(field.name, val, setForm);
+                    } else {
+                      setForm((prev) => ({ ...prev, [field.name]: val }));
+                    }
+                  }}
+                  aria-label={field.label}
+                  aria-describedby={hasError ? errorId : undefined}
+                  aria-invalid={hasError}
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                >
+                  <option value="">{t('common.pleaseSelect')}</option>
+                  {selectOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : field.type === 'textarea' ? (
+                <textarea
+                  value={form[field.name] || ''}
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    clearError(field.name);
+                    if (field.onFieldChange) {
+                      field.onFieldChange(field.name, val, setForm);
+                    } else {
+                      setForm((prev) => ({ ...prev, [field.name]: val }));
+                    }
+                  }}
+                  aria-label={field.label}
+                  aria-describedby={hasError ? errorId : undefined}
+                  aria-invalid={hasError}
+                  className="h-20 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                />
+              ) : (
+                <input
+                  type={field.type || 'text'}
+                  value={form[field.name] || ''}
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    clearError(field.name);
+                    if (field.onFieldChange) {
+                      field.onFieldChange(field.name, val, setForm);
+                    } else {
+                      setForm((prev) => ({ ...prev, [field.name]: val }));
+                    }
+                  }}
+                  aria-label={field.label}
+                  aria-describedby={hasError ? errorId : undefined}
+                  aria-invalid={hasError}
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                />
+              )}
+            </div>
+            {hasError && (
+              <p id={errorId} role="alert" className="mt-1 pl-28 text-xs text-red-500">
+                {errors[field.name]}
+              </p>
             )}
           </div>
         );
