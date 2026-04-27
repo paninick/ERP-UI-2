@@ -1,4 +1,5 @@
 import {ReactNode} from 'react';
+import {useTranslation} from 'react-i18next';
 
 interface Column<T> {
   key: string;
@@ -13,6 +14,7 @@ interface BaseTableProps<T> {
   loading?: boolean;
   rowKey?: string;
   onRowClick?: (record: T) => void;
+  ariaLabel?: string;
 }
 
 export default function BaseTable<T extends Record<string, any>>({
@@ -21,10 +23,20 @@ export default function BaseTable<T extends Record<string, any>>({
   loading,
   rowKey = 'id',
   onRowClick,
+  ariaLabel,
 }: BaseTableProps<T>) {
+  const {t} = useTranslation();
+
+  const handleRowKeyDown = (e: React.KeyboardEvent, record: T) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onRowClick?.(record);
+    }
+  };
+
   return (
     <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm" aria-label={ariaLabel}>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50">
             {columns.map((column) => (
@@ -42,21 +54,24 @@ export default function BaseTable<T extends Record<string, any>>({
           {loading ? (
             <tr>
               <td colSpan={columns.length} className="py-12 text-center text-slate-400">
-                加载中...
+                {t('common.loading')}
               </td>
             </tr>
           ) : data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="py-12 text-center text-slate-400">
-                暂无数据
+                {t('common.noData')}
               </td>
             </tr>
           ) : (
             data.map((record, index) => (
               <tr
                 key={record[rowKey] ?? index}
-                className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50"
+                role={onRowClick ? 'button' : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
                 onClick={() => onRowClick?.(record)}
+                onKeyDown={(e) => onRowClick && handleRowKeyDown(e, record)}
               >
                 {columns.map((column) => (
                   <td key={column.key} className="px-4 py-3 text-slate-700">
