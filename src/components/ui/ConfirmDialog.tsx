@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { create } from 'zustand';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
@@ -37,6 +38,38 @@ export function confirm(message: string, title = ''): Promise<boolean> {
 export default function ConfirmDialog() {
   const { t } = useTranslation();
   const { open, message, title, _answer } = useConfirmStore();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      requestAnimationFrame(() => cancelRef.current?.focus());
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    }
+  }, [open]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') {
+      const cancel = cancelRef.current;
+      const confirm = confirmRef.current;
+      if (!cancel || !confirm) return;
+
+      const focusable = [cancel, confirm];
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLButtonElement);
+      if (e.shiftKey) {
+        if (currentIndex <= 0) { e.preventDefault(); confirm.focus(); }
+      } else {
+        if (currentIndex >= focusable.length - 1) { e.preventDefault(); cancel.focus(); }
+      }
+    }
+    if (e.key === 'Escape') {
+      _answer(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -58,6 +91,7 @@ export default function ConfirmDialog() {
             aria-modal="true"
             aria-labelledby="confirm-title"
             aria-describedby="confirm-message"
+            onKeyDown={handleKeyDown}
           >
             <div className="flex items-center gap-3 border-b border-slate-200 px-6 py-4">
               <AlertTriangle size={20} className="shrink-0 text-amber-500" />
@@ -72,6 +106,7 @@ export default function ConfirmDialog() {
             </div>
             <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
               <button
+                ref={cancelRef}
                 type="button"
                 onClick={() => _answer(false)}
                 className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-200"
@@ -79,6 +114,7 @@ export default function ConfirmDialog() {
                 {t('common.cancel')}
               </button>
               <button
+                ref={confirmRef}
                 type="button"
                 onClick={() => _answer(true)}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"

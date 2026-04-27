@@ -15,6 +15,7 @@ interface BaseTableProps<T> {
   rowKey?: string;
   onRowClick?: (record: T) => void;
   ariaLabel?: string;
+  emptyAction?: ReactNode;
 }
 
 export default function BaseTable<T extends Record<string, any>>({
@@ -24,6 +25,7 @@ export default function BaseTable<T extends Record<string, any>>({
   rowKey = 'id',
   onRowClick,
   ariaLabel,
+  emptyAction,
 }: BaseTableProps<T>) {
   const {t} = useTranslation();
 
@@ -59,8 +61,9 @@ export default function BaseTable<T extends Record<string, any>>({
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="py-12 text-center text-slate-400">
-                {t('common.noData')}
+              <td colSpan={columns.length} className="py-12 text-center">
+                <p className="text-slate-400">{t('common.noData')}</p>
+                {emptyAction && <div className="mt-3">{emptyAction}</div>}
               </td>
             </tr>
           ) : (

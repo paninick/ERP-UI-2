@@ -102,3 +102,12 @@
     transition: none !important;
   }
 }
+
+/* Global focus-visible ring */
+@layer base {
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(99 102 241);
+    border-radius: 4px;
+  }
+}
