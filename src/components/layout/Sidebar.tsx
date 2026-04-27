@@ -151,24 +151,32 @@ export default function Sidebar() {
     >
       <div className="flex h-14 items-center justify-between border-b border-slate-700 px-4">
         {!collapsed && <span className="text-lg font-bold">ERP</span>}
-        <button onClick={toggle} className="rounded p-1 hover:bg-slate-700">
+        <button
+          onClick={toggle}
+          aria-label={collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
+          className="rounded p-1 hover:bg-slate-700"
+        >
           {collapsed ? <ChevronRight size={18} /> : <X size={18} />}
         </button>
       </div>
 
-      <nav className="mt-2 h-[calc(100%-3.5rem)] overflow-y-auto">
+      <nav className="mt-2 h-[calc(100%-3.5rem)] overflow-y-auto" aria-label={t('nav.mainNavigation')}>
         {navItems.map((group) => (
-          <div key={group.key}>
+          <div key={group.key} role="group" aria-label={group.label}>
             <button
               onClick={() => toggleGroup(group.key)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(group.key); } }}
+              aria-expanded={!!openGroups[group.key]}
+              aria-label={group.label}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800"
             >
-              <group.icon size={18} />
+              <group.icon size={18} aria-hidden="true" />
               {!collapsed && (
                 <>
                   <span className="flex-1 text-left">{group.label}</span>
                   <ChevronDown
                     size={14}
+                    aria-hidden="true"
                     className={`transition-transform ${openGroups[group.key] ? 'rotate-0' : '-rotate-90'}`}
                   />
                 </>
@@ -186,6 +194,7 @@ export default function Sidebar() {
                     <NavLink
                       key={item.path}
                       to={item.path}
+                      role="menuitem"
                       className={({ isActive }) => (
                         `block py-2 pl-12 pr-4 text-sm transition-colors ${
                           isActive ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'

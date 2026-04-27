@@ -75,6 +75,9 @@ export const resources = {
         qrLoading: 'QR \u52a0\u8f7d\u4e2d',
       },
       nav: {
+        expandSidebar: '\u5c55\u5f00\u4fa7\u8fb9\u680f',
+        collapseSidebar: '\u6298\u53e0\u4fa7\u8fb9\u680f',
+        mainNavigation: '\u4e3b\u5bfc\u822a',
         dashboard: '\u9996\u9875',
         dashboardWorkbench: '\u5de5\u4f5c\u53f0',
         sales: '\u9500\u552e\u7ba1\u7406',
@@ -1420,6 +1423,9 @@ export const resources = {
         qrLoading: 'QR \u8aad\u307f\u8fbc\u307f\u4e2d',
       },
       nav: {
+        expandSidebar: '\u30b5\u30a4\u30c9\u30d0\u30fc\u3092\u958b\u304f',
+        collapseSidebar: '\u30b5\u30a4\u30c9\u30d0\u30fc\u3092\u9589\u3058\u308b',
+        mainNavigation: '\u30e1\u30a4\u30f3\u30ca\u30d3\u30b2\u30fc\u30b7\u30e7\u30f3',
         dashboard: '\u30db\u30fc\u30e0',
         dashboardWorkbench: '\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9',
         sales: '\u8ca9\u58f2\u7ba1\u7406',
