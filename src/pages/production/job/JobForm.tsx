@@ -11,6 +11,7 @@ interface ProducePlanOption {
   id: number;
   planNo?: string;
   salesNo?: string;
+  salesOrderId?: number;
   styleCode?: string;
   colorCode?: string;
   sizeCode?: string;
@@ -22,7 +23,7 @@ interface ProducePlanOption {
 interface ProcessRouteOption {
   id: number;
   routeName: string;
-  styleCode?: string;
+  productCode?: string;
 }
 
 interface JobFormProps {
@@ -105,8 +106,14 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
     if (!selectedPlan?.styleCode) {
       return routes;
     }
-    const matched = routes.filter((item) => !item.styleCode || item.styleCode === selectedPlan.styleCode);
+    const matched = routes.filter((item) => !item.productCode || item.productCode === selectedPlan.styleCode);
     return matched.length > 0 ? matched : routes;
+  }, [routes, selectedPlan?.styleCode]);
+  const hasExactRoute = useMemo(() => {
+    if (!selectedPlan?.styleCode) {
+      return true;
+    }
+    return routes.some((item) => item.productCode === selectedPlan.styleCode);
   }, [routes, selectedPlan?.styleCode]);
 
   useEffect(() => {
@@ -153,6 +160,7 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
         ...initialValues,
         jobNo: form.jobNo,
         producePlanId: Number(form.producePlanId),
+        orderId: selectedPlan?.salesOrderId ?? undefined,
         salesNo: form.salesNo,
         styleCode: form.styleCode,
         colorCode: form.colorCode || undefined,
@@ -268,11 +276,19 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
           {filteredRoutes.map((item) => (
             <option key={item.id} value={item.id}>
               {item.routeName}
-              {item.styleCode ? ` - ${item.styleCode}` : ''}
+              {item.productCode ? ` - ${item.productCode}` : ''}
             </option>
           ))}
         </select>
+        {routes.length === 0 && (
+          <span className="text-xs text-amber-600">{t('page.job.form.noRoutes', { defaultValue: '暂无可选工艺路线，请先维护工艺路线。' })}</span>
+        )}
       </div>
+      {selectedPlan?.styleCode && routes.length > 0 && !hasExactRoute && (
+        <div className="ml-[7.75rem] rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+          {t('page.job.form.routeFallbackHint', { styleCode: selectedPlan.styleCode })}
+        </div>
+      )}
 
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">{t('page.job.columns.status')}</label>
