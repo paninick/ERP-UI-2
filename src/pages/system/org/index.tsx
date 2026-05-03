@@ -34,21 +34,39 @@ export default function OrgUnitPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const params: any = {};
+      const params: any = { pageNum: 1, pageSize: 999 };
       if (filterFactoryId) params.factoryId = filterFactoryId;
       const res: any = await orgApi.listOrgUnit(params);
       const list: OrgNode[] = res.rows || [];
       setFlatList(list);
       setTree(buildTree(list));
       setExpanded(new Set([0, ...list.map(n => n.id)]));
-    } catch { toast.error(t('common.loadDataFailed')); }
+    } catch (error: any) {
+      toast.error(error?.message || t('common.loadDataFailed'));
+    }
   }, [t, filterFactoryId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const toggle = (id:number) => { setExpanded(p=>{ const s=new Set(p); s.has(id)?s.delete(id):s.add(id); return s; }); };
   const selectNode = (n:OrgNode) => { setSelected(n); setEditing(false); };
-  const startAdd = (parentId: number) => { setSelected(null); setEditing(true); setForm({ parentId, orgName: '', orgCode: '', orgType: parentId === 0 && filterFactoryId ? 'FACTORY' : 'DEPT', factoryId: parentId === 0 ? filterFactoryId : null, orderNum: 0, leader: '', phone: '', status: '0', remark: '' }); };
+  const startAdd = (parentId: number) => {
+    const parent = flatList.find((item) => item.id === parentId) || null;
+    setSelected(null);
+    setEditing(true);
+    setForm({
+      parentId,
+      orgName: '',
+      orgCode: '',
+      orgType: parentId === 0 ? 'FACTORY' : 'DEPT',
+      factoryId: parentId === 0 ? filterFactoryId : parent?.factoryId ?? null,
+      orderNum: 0,
+      leader: '',
+      phone: '',
+      status: '0',
+      remark: '',
+    });
+  };
   const startEdit = () => { if(!selected) return; setEditing(true); setForm({...selected}); };
 
   const handleSave = async () => {
@@ -120,7 +138,11 @@ export default function OrgUnitPage() {
             {search && <button onClick={()=>setSearch('')}><X size={13} className="text-slate-400"/></button>}
           </div>
         </div>
-        <div className="flex-1 overflow-auto px-2 py-2">{tree.map(n=>renderNode(n,0))}</div>
+        <div className="flex-1 overflow-auto px-2 py-2">
+          {tree.length > 0 ? tree.map(n=>renderNode(n,0)) : (
+            <div className="px-2 py-6 text-center text-xs text-slate-400">{t('common.noData', '暂无数据')}</div>
+          )}
+        </div>
       </div>
       <div className="flex flex-1 flex-col bg-slate-50">
         {!editing && selected && (

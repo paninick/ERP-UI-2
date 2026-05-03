@@ -6,18 +6,19 @@ const pageApi = { list: api.listBooking, get: api.getBooking, add: api.addBookin
 
 export default function JapanReleasePage() {
   const { t } = useTranslation();
+  const S = 'japan';
   const columns = [
-    { key: 'bookingNo', title: t('japan.bookingNo') },
-    { key: 'salesNo', title: t('japan.salesNo') },
-    { key: 'styleCode', title: t('japan.styleCode') },
-    { key: 'inspectionCompany', title: t('japan.company') },
-    { key: 'inspectionResult', title: t('japan.result') },
-    { key: 'status', title: t('japan.status') },
-    { key: 'daysSinceBooking', title: t('japan.days') },
+    { key: 'bookingNo', title: t(`${S}.bookingNo`) },
+    { key: 'salesNo', title: t(`${S}.salesNo`) },
+    { key: 'styleCode', title: t(`${S}.styleCode`) },
+    { key: 'inspectionCompanyName', title: t(`${S}.company`) },
+    { key: 'inspectionResult', title: t(`${S}.result`) },
+    { key: 'status', title: t(`${S}.status`) },
+    { key: 'daysSinceBooking', title: t(`${S}.days`) },
   ];
   const searchFields = [
-    { name: 'bookingNo', label: t('japan.bookingNo') },
-    { name: 'status', label: t('japan.status') },
+    { name: 'bookingNo', label: t(`${S}.bookingNo`) },
+    { name: 'status', label: t(`${S}.status`) },
   ];
-  return <CrudPage title={t('japan.title')} api={pageApi} columns={columns} searchFields={searchFields} />;
+  return <CrudPage title={t(`${S}.title`)} api={pageApi} columns={columns} searchFields={searchFields} />;
 }

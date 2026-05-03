@@ -20,6 +20,18 @@ export function delProducePlan(ids: string) {
   return client.delete(`/erp/plan/${ids}`);
 }
 
+export function submitProducePlan(id: number) {
+  return client.put(`/erp/plan/submit/${id}`);
+}
+
+export function approveProducePlan(id: number, remark?: string) {
+  return client.put(`/erp/plan/approve/${id}`, remark ? { remark } : undefined);
+}
+
+export function rejectProducePlan(id: number, remark?: string) {
+  return client.put(`/erp/plan/reject/${id}`, { remark: remark || '' });
+}
+
 export function listProduceJob(params: any) {
   return client.get('/erp/produceJob/list', { params });
 }
@@ -50,4 +62,8 @@ export function getProduceBoard() {
 
 export function initJobProcesses(jobId: number, routeId: number) {
   return client.post(`/erp/produceJob/initProcesses/${jobId}/${routeId}`);
+}
+
+export function repairJobProcesses(jobId: number) {
+  return client.post(`/erp/produceJob/repairProcesses/${jobId}`);
 }

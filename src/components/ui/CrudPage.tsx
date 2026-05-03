@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCrud } from '@/hooks/useCrud';
@@ -27,10 +27,10 @@ interface CrudPageProps {
   title: string;
   api: {
     list: (params: any) => Promise<any>;
-    get: (id: number) => Promise<any>;
-    add: (data: any) => Promise<any>;
-    update: (data: any) => Promise<any>;
-    remove: (ids: string) => Promise<any>;
+    get?: (id: number) => Promise<any>;
+    add?: (data: any) => Promise<any>;
+    update?: (data: any) => Promise<any>;
+    remove?: (ids: string) => Promise<any>;
   };
   columns: Column[];
   searchFields?: SearchFieldConfig[];
@@ -44,6 +44,8 @@ interface CrudPageProps {
   isEditDisabled?: (record: any) => boolean;
   isDeleteDisabled?: (record: any) => boolean;
   batchActions?: (selectedRowKeys: string[]) => ReactNode;
+  initialSearchParams?: Record<string, string>;
+  onSaved?: (record: any, mode: 'add' | 'edit') => void | Promise<void>;
 }
 
 export default function CrudPage({
@@ -57,6 +59,8 @@ export default function CrudPage({
   isEditDisabled,
   isDeleteDisabled,
   batchActions,
+  initialSearchParams,
+  onSaved,
 }: CrudPageProps) {
   const { t } = useTranslation();
   const {
@@ -71,16 +75,26 @@ export default function CrudPage({
     handleDelete,
   } = useCrud(api);
 
-  const [searchParams, setSearchParams] = useState<Record<string, string>>(() => {
+  const emptySearchParams = useMemo(() => {
     const initialValues: Record<string, string> = {};
     searchFields.forEach((field) => {
       initialValues[field.name] = '';
     });
     return initialValues;
-  });
+  }, [searchFields]);
+  const resolvedInitialSearchParams = useMemo(
+    () => ({ ...emptySearchParams, ...(initialSearchParams || {}) }),
+    [emptySearchParams, initialSearchParams],
+  );
+  const resolvedInitialSearchKey = useMemo(
+    () => JSON.stringify(resolvedInitialSearchParams),
+    [resolvedInitialSearchParams],
+  );
+  const [searchParams, setSearchParams] = useState<Record<string, string>>(resolvedInitialSearchParams);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const appliedInitialSearchKeyRef = useRef<string>('');
 
   useEffect(() => {
     if (!FormComponent) return;
@@ -95,6 +109,19 @@ export default function CrudPage({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [FormComponent]);
 
+  useEffect(() => {
+    if (appliedInitialSearchKeyRef.current === resolvedInitialSearchKey) {
+      return;
+    }
+    appliedInitialSearchKeyRef.current = resolvedInitialSearchKey;
+    setSearchParams(resolvedInitialSearchParams);
+    if (Object.values(resolvedInitialSearchParams).some((value) => String(value || '').trim() !== '')) {
+      handleSearch(resolvedInitialSearchParams);
+    } else {
+      handleReset();
+    }
+  }, [resolvedInitialSearchKey]);
+
   const allColumns = [
     ...columns,
     {
@@ -103,7 +130,7 @@ export default function CrudPage({
       width: '160px',
       render: (_: any, record: any) => (
         <div className="flex gap-1">
-          {FormComponent && (
+          {FormComponent && api.update && (
             <button
               onClick={(event) => {
                 event.stopPropagation();
@@ -116,23 +143,25 @@ export default function CrudPage({
               {t('common.edit')}
             </button>
           )}
-          <button
-            onClick={async (event) => {
-              event.stopPropagation();
-              if (await confirm(t('crud.confirmDeleteCurrent'))) {
-                handleDelete(String(record[rowKey]));
-              }
-            }}
-            disabled={Boolean(isDeleteDisabled?.(record))}
-            className="rounded px-2 py-2 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-          >
-            {t('common.delete')}
-          </button>
+          {api.remove && (
+            <button
+              onClick={async (event) => {
+                event.stopPropagation();
+                if (await confirm(t('crud.confirmDeleteCurrent'))) {
+                  handleDelete(String(record[rowKey]));
+                }
+              }}
+              disabled={Boolean(isDeleteDisabled?.(record))}
+              className="rounded px-2 py-2 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+            >
+              {t('common.delete')}
+            </button>
+          )}
           {extraActions && extraActions(record)}
         </div>
       ),
     },
-  ];
+  ].filter((column) => column.key !== 'actions' || Boolean(FormComponent || api.remove || extraActions));
 
   const handleAddNew = () => {
     setEditingRecord(null);
@@ -141,9 +170,14 @@ export default function CrudPage({
 
   const handleModalOk = async (values: any) => {
     if (editingRecord) {
-      await handleUpdate({ ...values, [rowKey]: editingRecord[rowKey] });
+      if (!api.update) return;
+      const payload = { ...values, [rowKey]: editingRecord[rowKey] };
+      await handleUpdate(payload);
+      await onSaved?.(payload, 'edit');
     } else {
+      if (!api.add) return;
       await handleAdd(values);
+      await onSaved?.(values, 'add');
     }
     setModalOpen(false);
   };
@@ -183,7 +217,7 @@ export default function CrudPage({
             <Download size={14} />
             {t('common.exportCsv')}
           </button>
-          {FormComponent && (
+          {FormComponent && api.add && (
             <button
               onClick={handleAddNew}
               className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-3 text-sm text-white hover:bg-indigo-700 min-h-[44px]"
@@ -199,11 +233,7 @@ export default function CrudPage({
         <SearchForm
           onSearch={() => handleSearch(searchParams)}
           onReset={() => {
-            const nextSearchParams: Record<string, string> = {};
-            searchFields.forEach((field) => {
-              nextSearchParams[field.name] = '';
-            });
-            setSearchParams(nextSearchParams);
+            setSearchParams(emptySearchParams);
             handleReset();
           }}
         >
@@ -247,12 +277,14 @@ export default function CrudPage({
             {t('common.selectedCount', { count: selectedRowKeys.length })}
           </span>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleBatchDelete}
-              className="rounded px-3 py-1 text-xs text-red-600 hover:bg-red-100"
-            >
-              {t('common.batchDelete')}
-            </button>
+            {api.remove && (
+              <button
+                onClick={handleBatchDelete}
+                className="rounded px-3 py-1 text-xs text-red-600 hover:bg-red-100"
+              >
+                {t('common.batchDelete')}
+              </button>
+            )}
             {batchActions?.(selectedRowKeys)}
           </div>
           <button

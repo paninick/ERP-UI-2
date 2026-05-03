@@ -11,6 +11,7 @@ interface BaseModalProps {
   children: ReactNode;
   width?: string;
   loading?: boolean;
+  testId?: string;
 }
 
 export default function BaseModal({
@@ -21,6 +22,7 @@ export default function BaseModal({
   children,
   width = '500px',
   loading,
+  testId,
 }: BaseModalProps) {
   const { t } = useTranslation();
 
@@ -59,6 +61,7 @@ export default function BaseModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative overflow-hidden rounded-2xl bg-white shadow-2xl"
+            data-testid={testId}
             role="dialog"
             aria-modal="true"
             aria-label={title}

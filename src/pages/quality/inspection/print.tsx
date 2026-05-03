@@ -7,8 +7,11 @@ import * as jobProcessApi from '@/api/produceJobProcess';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import PrintCodeStrip from '@/components/business/PrintCodeStrip';
 import { useAuthStore } from '@/stores/authStore';
+import { useAppStore } from '@/stores/appStore';
 import { useDictOptions } from '@/hooks/useDictOptions';
+import { unwrapAjaxResultData } from '@/utils/ajaxResult';
 import { buildQualityInspectionLink, buildQualityInspectionPrintLink } from '@/utils/businessLinks';
+import { getCompanyLabel } from '@/utils/companyContext';
 
 interface JobProcessRecord {
   id?: number;
@@ -45,6 +48,8 @@ export default function QualityInspectionPrintPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
 
   const [loading, setLoading] = useState(true);
   const [record, setRecord] = useState<JobProcessRecord | null>(null);
@@ -61,11 +66,15 @@ export default function QualityInspectionPrintPage() {
       setLoading(true);
       try {
         const detail: any = await jobProcessApi.getProduceJobProcess(Number(id)).catch(() => null);
-        const nextRecord = detail?.data || detail || null;
+        const nextRecord = unwrapAjaxResultData<JobProcessRecord>(detail);
         if (!mounted) {
           return;
         }
         setRecord(nextRecord);
+        if (!nextRecord) {
+          setDefects([]);
+          return;
+        }
 
         if (nextRecord?.jobId && nextRecord?.processId) {
           const defectResponse: any = await defectApi.listDefect({
@@ -89,7 +98,7 @@ export default function QualityInspectionPrintPage() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [companySignature, id]);
 
   const statusTag = useMemo(() => processStatus.toTag(record?.processStatus), [processStatus, record?.processStatus]);
   const inspectorName = user?.nickname || user?.username || record?.releaseBy || t('page.qualityInspection.inspectorFallback');
@@ -107,7 +116,14 @@ export default function QualityInspectionPrintPage() {
   }
 
   if (!record) {
-    return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">{t('page.qualityInspectionPrint.notFound')}</div>;
+    return (
+      <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">
+        <div className="mb-2 text-sm text-slate-500">
+          {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+        </div>
+        {t('page.qualityInspectionPrint.notFound')}
+      </div>
+    );
   }
 
   return (
@@ -125,6 +141,9 @@ export default function QualityInspectionPrintPage() {
           <div>
             <h2 className="text-2xl font-bold text-slate-900">{t('page.qualityInspectionPrint.title')}</h2>
             <p className="text-sm text-slate-500">{t('page.qualityInspectionPrint.subtitle')}</p>
+            <p className="mt-1 text-xs text-slate-400">
+              {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+            </p>
           </div>
         </div>
         <button

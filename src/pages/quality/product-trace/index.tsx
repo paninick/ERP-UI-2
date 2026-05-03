@@ -5,7 +5,8 @@ import {toast} from '@/components/ui/Toast';
 import BaseTable from '@/components/ui/BaseTable';
 import Pagination from '@/components/ui/Pagination';
 import SearchForm, {SearchField} from '@/components/ui/SearchForm';
-import {Calendar, CheckCircle, ShoppingCart, Tag} from 'lucide-react';
+import {Calendar, CheckCircle, GitBranch, PackageCheck, ShoppingCart, Tag} from 'lucide-react';
+import BaseModal from '@/components/ui/BaseModal';
 
 interface ProductTrace {
   salesOrderId: number;
@@ -62,6 +63,7 @@ export default function ProductTracePage() {
     total: 0,
   });
   const [searchParams, setSearchParams] = useState(EMPTY_SEARCH);
+  const [detailRecord, setDetailRecord] = useState<ProductTrace | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -185,7 +187,57 @@ export default function ProductTracePage() {
         </div>
       ) : '-',
     },
+    {
+      key: 'actions',
+      title: t('common.actions'),
+      width: '90px',
+      render: (_value: string, record: ProductTrace) => (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setDetailRecord(record);
+          }}
+          className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50"
+        >
+          {t('common.detail')}
+        </button>
+      ),
+    },
   ];
+
+  const traceSteps = detailRecord ? [
+    {
+      label: t(`${S}.detail.sales`),
+      value: detailRecord.salesNo || '-',
+      hint: `${detailRecord.customerName || '-'} / ${detailRecord.bulkOrderNo || '-'}`,
+      active: true,
+    },
+    {
+      label: t(`${S}.detail.plan`),
+      value: detailRecord.planNo || '-',
+      hint: `${t(`${S}.columns.planVsActual`)} ${safeNumber(detailRecord.planQty)} / ${safeNumber(detailRecord.actualQty)}`,
+      active: Boolean(detailRecord.producePlanId),
+    },
+    {
+      label: t(`${S}.detail.job`),
+      value: detailRecord.jobNo || '-',
+      hint: `${detailRecord.colorCode || '-'} / ${detailRecord.sizeCode || '-'}`,
+      active: Boolean(detailRecord.produceJobId),
+    },
+    {
+      label: t(`${S}.detail.process`),
+      value: detailRecord.currentProcessName || '-',
+      hint: detailRecord.finishTime || t(`${S}.detail.unfinished`),
+      active: Boolean(detailRecord.currentProcessName),
+    },
+    {
+      label: t(`${S}.detail.shipment`),
+      value: detailRecord.serialStatusName || '-',
+      hint: detailRecord.shipTime || detailRecord.warehouseTime || '-',
+      active: Boolean(detailRecord.shipTime || detailRecord.warehouseTime),
+    },
+  ] : [];
 
   return (
     <div className="space-y-4">
@@ -277,13 +329,61 @@ export default function ProductTracePage() {
         </SearchField>
       </SearchForm>
 
-      <BaseTable columns={columns} data={data} loading={loading} rowKey="serialId" />
+      <BaseTable columns={columns} data={data} loading={loading} rowKey="serialId" onRowClick={setDetailRecord} />
       <Pagination
         current={pagination.pageNum}
         pageSize={pagination.pageSize}
         total={pagination.total}
         onChange={(page, pageSize) => setPagination((prev) => ({...prev, pageNum: page, pageSize}))}
       />
+
+      <BaseModal
+        open={Boolean(detailRecord)}
+        title={`${t(`${S}.detail.title`)} - ${detailRecord?.styleCode || '-'}`}
+        onClose={() => setDetailRecord(null)}
+        width="880px"
+      >
+        {detailRecord && (
+          <div className="space-y-5">
+            <div className="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm md:grid-cols-3">
+              <div>
+                <p className="text-slate-400">{t(`${S}.columns.styleAndBulk`)}</p>
+                <p className="mt-1 font-semibold text-slate-900">{detailRecord.styleCode || '-'}</p>
+                <p className="text-xs text-slate-500">{detailRecord.bulkOrderNo || '-'}</p>
+              </div>
+              <div>
+                <p className="text-slate-400">{t(`${S}.columns.serialNo`)}</p>
+                <p className="mt-1 font-mono font-semibold text-slate-900">{detailRecord.serialNo || '-'}</p>
+              </div>
+              <div>
+                <p className="text-slate-400">{t(`${S}.columns.status`)}</p>
+                <p className="mt-1 font-semibold text-emerald-700">{detailRecord.serialStatusName || '-'}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {traceSteps.map((step, index) => (
+                <div key={step.label} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-full ${step.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+                      {index === traceSteps.length - 1 ? <PackageCheck size={16} /> : <GitBranch size={16} />}
+                    </span>
+                    {index < traceSteps.length - 1 && <span className="h-8 w-px bg-slate-200" />}
+                  </div>
+                  <div className="pb-3">
+                    <p className="text-sm font-medium text-slate-900">{step.label}: {step.value}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{step.hint}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {t(`${S}.detail.scopeHint`)}
+            </div>
+          </div>
+        )}
+      </BaseModal>
     </div>
   );
 }

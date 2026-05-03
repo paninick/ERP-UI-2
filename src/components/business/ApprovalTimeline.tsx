@@ -34,6 +34,12 @@ function mapNodeLabel(nodeCode?: string) {
   if (normalized === 'BOM_APPROVE') {
     return 'BOM 审批';
   }
+  if (normalized === 'TECH_ASSIGN') {
+    return '技术分配';
+  }
+  if (normalized === 'TECH_APPROVE') {
+    return '技术核版审批';
+  }
   if (normalized === 'PLAN_APPROVE') {
     return '计划审批';
   }

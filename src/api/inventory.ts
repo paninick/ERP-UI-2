@@ -16,6 +16,14 @@ export function updateStockIn(data: any) {
   return client.put('/erp/stockIn', data);
 }
 
+export function confirmStockIn(id: number) {
+  return client.put(`/erp/stockIn/confirm/${id}`);
+}
+
+export function cancelConfirmStockIn(id: number) {
+  return client.put(`/erp/stockIn/cancelConfirm/${id}`);
+}
+
 export function delStockIn(ids: string) {
   return client.delete(`/erp/stockIn/${ids}`);
 }
@@ -90,4 +98,24 @@ export function updateStockOutItem(data: any) {
 
 export function delStockOutItem(ids: string) {
   return client.delete(`/erp/stockOut/item/${ids}`);
+}
+
+export function listMaterialBatch(params: any) {
+  return client.get('/erp/materialBatch/list', { params });
+}
+
+export function getMaterialBatch(id: number) {
+  return client.get(`/erp/materialBatch/${id}`);
+}
+
+export function traceMaterialBatchForward(batchId: number) {
+  return client.get('/erp/materialBatch/trace/forward', {
+    params: { batchId },
+  });
+}
+
+export function traceMaterialBatchBackward(serialId: number) {
+  return client.get('/erp/materialBatch/trace/backward', {
+    params: { serialId },
+  });
 }

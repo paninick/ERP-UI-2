@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { NavLink } from 'react-router-dom';
+import { ArrowRight, Badge, PackagePlus, Tags } from 'lucide-react';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
 import * as auxiliaryApi from '@/api/auxiliary';
@@ -72,12 +74,55 @@ export default function AuxiliaryPage() {
   ];
 
   return (
-    <CrudPage
-      title={t('page.auxiliaryMaterial.title')}
-      api={api}
-      columns={columns}
-      searchFields={searchFields}
-      FormComponent={(props) => <GenericForm {...props} fields={formFields} />}
-    />
+    <div className="space-y-4">
+      <section className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+          <div>
+            <div className="inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-orange-700">辅料主数据</div>
+            <h1 className="mt-3 text-2xl font-semibold text-slate-900">{t('page.auxiliaryMaterial.title')}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+              辅料负责记录扣子、拉链、吊牌、洗标、包装物等配套材料主档。它和主料一样属于供应链主数据，但更偏附件和配件层，目标是让 BOM、采购和仓储都能引用统一辅料定义。
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                { icon: PackagePlus, label: '它是什么', value: '配件与附件主档' },
+                { icon: Tags, label: '常见内容', value: '扣子 / 拉链 / 洗标 / 包材' },
+                { icon: Badge, label: '它不是什么', value: '不是临时采购备注' },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="w-fit rounded-2xl bg-white p-2 text-slate-700 shadow-sm">
+                    <item.icon size={18} />
+                  </div>
+                  <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3">
+            {[
+              { to: '/material/bom', title: '继续看 BOM', detail: '辅料应和主料一起被 BOM 引用，而不是采购时临时补写。' },
+              { to: '/supplier', title: '再看供应商', detail: '辅料主档和默认供应商关系应在供应链侧稳定维护。' },
+            ].map((item) => (
+              <NavLink key={item.to} to={item.to} className="group rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-orange-300 hover:bg-orange-50/50">
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+                <div className="mt-3 flex justify-end text-orange-700">
+                  <ArrowRight size={16} className="transition group-hover:translate-x-1" />
+                </div>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <CrudPage
+        title={t('page.auxiliaryMaterial.title')}
+        api={api}
+        columns={columns}
+        searchFields={searchFields}
+        FormComponent={(props) => <GenericForm {...props} fields={formFields} />}
+      />
+    </div>
   );
 }

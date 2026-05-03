@@ -10,7 +10,7 @@ import { SKIP_FACTORY_CONTEXT_HEADER } from '@/api/client';
 import { toast } from '@/components/ui/Toast';
 import { useDictOptions } from '@/hooks/useDictOptions';
 import { useAppStore } from '@/stores/appStore';
-import { getCompanyLabel, getOrgFactoryIdForCompany } from '@/utils/companyContext';
+import { getCompanyLabel } from '@/utils/companyContext';
 import { Activity, AlertTriangle, ArrowRight, CalendarRange, CheckCircle2, ClipboardList, Factory, LayoutDashboard, PackageCheck, TimerReset } from 'lucide-react';
 
 const pageApi = {
@@ -52,7 +52,7 @@ export default function WorkCenterPage() {
 
     async function loadWorkshops() {
       try {
-        const orgFactoryId = getOrgFactoryIdForCompany(currentCompany.code);
+        const orgFactoryId = currentCompany.orgFactoryId ?? undefined;
         const res: any = await orgApi.listOrgUnit({
           pageNum: 1,
           pageSize: 999,

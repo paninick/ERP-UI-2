@@ -37,7 +37,7 @@ export default function OutsourceForm({ initialValues, onSubmit, onCancel }: Out
     { value: '3', label: t('page.outsource.status.completed') },
     { value: '4', label: t('page.outsource.status.cancelled') },
   ]);
-  const locked = isApprovalLocked(initialValues?.status, processStatus.options);
+  const locked = isApprovalLocked(initialValues?.auditStatus);
 
   useEffect(() => {
     supplierApi

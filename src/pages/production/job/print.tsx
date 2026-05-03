@@ -7,7 +7,10 @@ import * as jobProcessApi from '@/api/produceJobProcess';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import PrintCodeStrip from '@/components/business/PrintCodeStrip';
 import { useDictOptions } from '@/hooks/useDictOptions';
+import { useAppStore } from '@/stores/appStore';
+import { unwrapAjaxResultData } from '@/utils/ajaxResult';
 import { buildProduceJobPrintLink, buildProduceJobReportLink } from '@/utils/businessLinks';
+import { getCompanyLabel } from '@/utils/companyContext';
 
 interface ProcessStep {
   id: number;
@@ -38,6 +41,8 @@ export default function ProduceJobPrintPage() {
   const { t } = useTranslation();
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
   const [loading, setLoading] = useState(true);
   const [record, setRecord] = useState<ProduceJobRecord | null>(null);
   const [steps, setSteps] = useState<ProcessStep[]>([]);
@@ -65,7 +70,7 @@ export default function ProduceJobPrintPage() {
           return;
         }
 
-        setRecord(jobResponse?.data || jobResponse || null);
+        setRecord(unwrapAjaxResultData<ProduceJobRecord>(jobResponse));
         const rows = processResponse?.rows || processResponse || [];
         setSteps([...rows].sort((a: ProcessStep, b: ProcessStep) => (a.processSeq || 0) - (b.processSeq || 0)));
       } finally {
@@ -79,7 +84,7 @@ export default function ProduceJobPrintPage() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [companySignature, id]);
 
   const statusTag = useMemo(() => planStatus.toTag(record?.status), [planStatus, record?.status]);
   const reportProcess = useMemo(
@@ -97,7 +102,14 @@ export default function ProduceJobPrintPage() {
   }
 
   if (!record) {
-    return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">{t('page.jobPrint.notFound')}</div>;
+    return (
+      <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">
+        <div className="mb-2 text-sm text-slate-500">
+          {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+        </div>
+        {t('page.jobPrint.notFound')}
+      </div>
+    );
   }
 
   return (
@@ -115,6 +127,9 @@ export default function ProduceJobPrintPage() {
           <div>
             <h2 className="text-2xl font-bold text-slate-900">{t('page.jobPrint.title')}</h2>
             <p className="text-sm text-slate-500">{t('page.jobPrint.subtitle')}</p>
+            <p className="mt-1 text-xs text-slate-400">
+              {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+            </p>
           </div>
         </div>
         <button

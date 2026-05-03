@@ -8,6 +8,10 @@ export function getProcessDef(id: number) {
   return client.get(`/erp/processDef/${id}`);
 }
 
+export function getNextProcessCode() {
+  return client.get('/erp/processDef/nextCode');
+}
+
 export function addProcessDef(data: any) {
   return client.post('/erp/processDef', data);
 }

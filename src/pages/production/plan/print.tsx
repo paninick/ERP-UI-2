@@ -8,7 +8,10 @@ import * as productionApi from '@/api/production';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import PrintCodeStrip from '@/components/business/PrintCodeStrip';
 import { useDictOptions } from '@/hooks/useDictOptions';
+import { useAppStore } from '@/stores/appStore';
+import { unwrapAjaxResultData } from '@/utils/ajaxResult';
 import { buildProducePlanPrintLink } from '@/utils/businessLinks';
+import { getCompanyLabel } from '@/utils/companyContext';
 
 interface ProducePlanRecord {
   planNo?: string;
@@ -24,6 +27,8 @@ export default function ProducePlanPrintPage() {
   const { t } = useTranslation();
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
   const [loading, setLoading] = useState(true);
   const [record, setRecord] = useState<ProducePlanRecord | null>(null);
   const [approvalLogs, setApprovalLogs] = useState<any[]>([]);
@@ -45,7 +50,7 @@ export default function ProducePlanPrintPage() {
       try {
         const response: any = await productionApi.getProducePlan(Number(id)).catch(() => null);
         if (mounted) {
-          setRecord(response?.data || response || null);
+          setRecord(unwrapAjaxResultData<ProducePlanRecord>(response));
         }
         const approvalRes: any = await approvalApi.listApprovalLog({
           businessType: 'PRODUCE_PLAN',
@@ -68,7 +73,7 @@ export default function ProducePlanPrintPage() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [companySignature, id]);
 
   const statusTag = useMemo(() => planStatus.toTag(record?.status), [planStatus, record?.status]);
   const printLink = useMemo(() => buildProducePlanPrintLink(id), [id]);
@@ -78,7 +83,14 @@ export default function ProducePlanPrintPage() {
   }
 
   if (!record) {
-    return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">{t('page.planPrint.notFound')}</div>;
+    return (
+      <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">
+        <div className="mb-2 text-sm text-slate-500">
+          {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+        </div>
+        {t('page.planPrint.notFound')}
+      </div>
+    );
   }
 
   return (
@@ -96,6 +108,9 @@ export default function ProducePlanPrintPage() {
           <div>
             <h2 className="text-2xl font-bold text-slate-900">{t('page.planPrint.title')}</h2>
             <p className="text-sm text-slate-500">{t('page.planPrint.subtitle')}</p>
+            <p className="mt-1 text-xs text-slate-400">
+              {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+            </p>
           </div>
         </div>
         <button

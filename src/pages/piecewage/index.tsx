@@ -11,14 +11,6 @@ import { confirm } from '@/components/ui/ConfirmDialog';
 import { toast } from '@/components/ui/Toast';
 import { useDictOptions } from '@/hooks/useDictOptions';
 import { useCrud } from '@/hooks/useCrud';
-import { useAuthStore } from '@/stores/authStore';
-import {
-  buildApprovalLog,
-  buildApprovalPayload,
-  getApprovalActorName,
-  isConfirmedStatus,
-  resolveApprovalValue,
-} from '@/utils/approval';
 
 const api = {
   list: piecewageApi.listPiecewage,
@@ -30,7 +22,6 @@ const api = {
 
 export default function PiecewagePage() {
   const { t } = useTranslation();
-  const user = useAuthStore((state) => state.user);
   const { data, loading, pagination, handleSearch, handleReset, handlePageChange, refresh } = useCrud(api);
   const [logOpen, setLogOpen] = useState(false);
   const [logLoading, setLogLoading] = useState(false);
@@ -112,13 +103,26 @@ export default function PiecewagePage() {
     },
   ];
 
+  const resolveSettleStatus = (record: any) => {
+    if (record?.settleStatus) {
+      return record.settleStatus;
+    }
+    if (record?.status === '2') {
+      return 'PAID';
+    }
+    if (record?.status === '1') {
+      return 'CONFIRMED';
+    }
+    return 'DRAFT';
+  };
+
   const loadApprovalLogs = async (record: any) => {
     setCurrentRecord(record);
     setLogOpen(true);
     setLogLoading(true);
     try {
       const response: any = await approvalApi.listApprovalLog({
-        businessType: 'PIECEWAGE',
+        businessType: 'PIECE_WAGE',
         businessId: record.id,
         pageNum: 1,
         pageSize: 50,
@@ -146,37 +150,41 @@ export default function PiecewagePage() {
     }
   };
 
-  const handleConfirmAction = async (record: any, action: 'approve' | 'reject') => {
-    const actorName = getApprovalActorName(user);
-    const actionText = action === 'approve' ? t(`${PA}.confirm`) : t(`${PA}.unconfirm`);
-    const confirmed = await confirm(t(`${PA}.confirmPrompt`, { name: record.employeeName || '-', month: record.wageMonth || '-', action: actionText }));
+  const handleConfirmAction = async (record: any) => {
+    const confirmed = await confirm(
+      t('approval.confirmAction', {
+        name: `${record.employeeName || '-'} / ${record.wageMonth || '-'}`,
+        action: t(`${PA}.confirm`),
+      }),
+    );
     if (!confirmed) return;
 
-    const nextStatus = action === 'approve'
-      ? resolveApprovalValue(confirmStatus.options, 'approved', '1')
-      : resolveApprovalValue(confirmStatus.options, 'draft', '0');
+    try {
+      await piecewageApi.confirmPiecewage(record.id);
+      toast.success(t(`${PA}.confirmSuccess`));
+      if (logOpen && currentRecord?.id === record.id) {
+        await loadApprovalLogs(record);
+      }
+      await refresh();
+    } catch (error: any) {
+      toast.error(error.message || t('approval.actionFailed'));
+    }
+  };
+
+  const handlePayAction = async (record: any) => {
+    const confirmed = await confirm(
+      t('approval.confirmAction', {
+        name: `${record.employeeName || '-'} / ${record.wageMonth || '-'}`,
+        action: t(`${PA}.pay`),
+      }),
+    );
+    if (!confirmed) return;
 
     try {
-      await piecewageApi.updatePiecewage(buildApprovalPayload({
-        record,
-        statusField: 'status',
-        nextStatus,
-        action,
-        actorName,
-      }));
-      await approvalApi.addApprovalLog(buildApprovalLog({
-        businessType: 'PIECEWAGE',
-        businessId: record.id,
-        businessNo: `${record.employeeName || ''}-${record.wageMonth || ''}`,
-        nodeCode: 'FINANCE_CONFIRM',
-        actionType: action === 'approve' ? 'APPROVE' : 'REJECT',
-        fromStatus: String(record.status || ''),
-        toStatus: String(nextStatus || ''),
-        actionBy: actorName,
-      })).catch(() => null);
-      toast.success(action === 'approve' ? t(`${PA}.confirmSuccess`) : t(`${PA}.unconfirmSuccess`));
+      await piecewageApi.payPiecewage(record.id);
+      toast.success(t(`${PA}.paySuccess`));
       if (logOpen && currentRecord?.id === record.id) {
-        loadApprovalLogs({ ...record, status: nextStatus });
+        await loadApprovalLogs(record);
       }
       await refresh();
     } catch (error: any) {
@@ -212,7 +220,12 @@ export default function PiecewagePage() {
     <>
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-800">{t('page.piecewage.title')}</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">{t('page.piecewage.title')}</h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-500">
+              {t(`${PA}.chainHint`)}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <input
               type="month"
@@ -274,14 +287,14 @@ export default function PiecewagePage() {
                   <button type="button" onClick={(event) => { event.stopPropagation(); openDetails(record); }} className="rounded px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50">
                     {t(`${PA}.detail`)}
                   </button>
-                  {!isConfirmedStatus(record.status, confirmStatus.options) && (
-                    <button type="button" onClick={(event) => { event.stopPropagation(); handleConfirmAction(record, 'approve'); }} className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50">
+                  {resolveSettleStatus(record) === 'DRAFT' && (
+                    <button type="button" onClick={(event) => { event.stopPropagation(); handleConfirmAction(record); }} className="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50">
                       {t(`${PA}.confirm`)}
                     </button>
                   )}
-                  {isConfirmedStatus(record.status, confirmStatus.options) && (
-                    <button type="button" onClick={(event) => { event.stopPropagation(); handleConfirmAction(record, 'reject'); }} className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50">
-                      {t(`${PA}.unconfirm`)}
+                  {resolveSettleStatus(record) === 'CONFIRMED' && (
+                    <button type="button" onClick={(event) => { event.stopPropagation(); handlePayAction(record); }} className="rounded px-2 py-1 text-xs text-amber-600 hover:bg-amber-50">
+                      {t(`${PA}.pay`)}
                     </button>
                   )}
                   <button type="button" onClick={(event) => { event.stopPropagation(); loadApprovalLogs(record); }} className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">

@@ -7,6 +7,9 @@ import * as salesApi from '@/api/sales';
 import ApprovalTimeline from '@/components/business/ApprovalTimeline';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import { toast } from '@/components/ui/Toast';
+import { useAppStore } from '@/stores/appStore';
+import { unwrapAjaxResultData } from '@/utils/ajaxResult';
+import { getCompanyLabel } from '@/utils/companyContext';
 import { createRowId, readDraft, writeDraft } from '@/utils/detailDraft';
 
 interface BulkRow {
@@ -124,10 +127,13 @@ export default function SalesOrderDetailPage() {
   const { t } = useTranslation();
   const { id = 'new' } = useParams();
   const navigate = useNavigate();
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [record, setRecord] = useState<any>(null);
   const [draft, setDraft] = useState<SalesDetailDraft | null>(null);
+  const [recordMissing, setRecordMissing] = useState(false);
   const [approvalLogs, setApprovalLogs] = useState<any[]>([]);
   const [approvalLoading, setApprovalLoading] = useState(false);
 
@@ -137,16 +143,19 @@ export default function SalesOrderDetailPage() {
     async function load() {
       setLoading(true);
       try {
-        const response: any = id === 'new' ? null : await salesApi.getSalesOrder(Number(id)).catch(() => null);
-        const nextRecord = response?.data || response || {};
+        const isNewRecord = id === 'new';
+        const response: any = isNewRecord ? null : await salesApi.getSalesOrder(Number(id)).catch(() => null);
+        const nextRecord = isNewRecord ? null : unwrapAjaxResultData<any>(response);
         if (!mounted) {
           return;
         }
+        setRecordMissing(!isNewRecord && !nextRecord);
         setRecord(nextRecord);
         const fallback = buildDefaultDraft(nextRecord);
-        setDraft(readDraft('sales-order-detail', id, fallback));
+        setDraft(isNewRecord || nextRecord ? readDraft('sales-order-detail', id, fallback) : null);
+        setApprovalLogs([]);
 
-        if (id !== 'new') {
+        if (!isNewRecord && nextRecord) {
           setApprovalLoading(true);
           const approvalRes: any = await approvalApi.listApprovalLog({
             businessType: 'SALES_ORDER',
@@ -172,7 +181,7 @@ export default function SalesOrderDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [companySignature, id]);
 
   useEffect(() => {
     if (!draft) {
@@ -375,6 +384,14 @@ export default function SalesOrderDetailPage() {
   };
 
   if (loading || !draft) {
+    if (!loading && recordMissing) {
+      return (
+        <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">
+          <div className="mb-2 text-sm text-slate-500">当前公司：{getCompanyLabel(currentCompany.code, t)}</div>
+          未找到对应的销售订单
+        </div>
+      );
+    }
     return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">{t('page.salesDetail.loading')}</div>;
   }
 
@@ -462,8 +479,66 @@ export default function SalesOrderDetailPage() {
         ]}
       />
 
+      <section className="grid gap-4 xl:grid-cols-[1.45fr_0.95fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-emerald-700">
+            订单即业务源头
+          </div>
+          <h3 className="mt-3 text-xl font-semibold text-slate-900">销售订单承接订单头、订单明细和客户要求</h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+            销售录单时，客户、交期、数量、金额、颜色尺码拆分、客户确认意见和参考材料方向都应该在这里沉淀。正式技术单与正式 BOM 由下游技术科冻结，不要求销售在源头阶段就伪装成技术完工。
+          </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {[
+              {
+                title: '订单头',
+                detail: '锁定客户、款号、交期、数量、金额与商务备注。',
+              },
+              {
+                title: '订单明细',
+                detail: '颜色、尺码、数量拆分就在本页维护，这里就是销售明细的主录入位置。',
+              },
+              {
+                title: '技术边界',
+                detail: '销售记录客户要求与参考材料，正式 BOM 与工艺冻结交给技术科。',
+              },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-900">从订单继续下游</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            订单信息确认后，再按实际场景流向打样、技术冻结和计划排产。这样用户点到工厂或部门时，看到的是自己该承接的维度，而不是一堆并列源头表。
+          </p>
+          <div className="mt-4 grid gap-3">
+            {[
+              { to: '/sales/proofing-notice', title: '打样任务', detail: '需要先做样衣或研发验证时，从订单继续下钻。' },
+              { to: '/sales/tech', title: '技术单', detail: '技术科承接正式工艺、尺寸与生产依据。' },
+              { to: '/production/plan', title: '生产计划', detail: '订单冻结后进入产能预排与排期协同。' },
+            ].map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-4 transition hover:border-indigo-300 hover:bg-indigo-50/40"
+              >
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-3xl bg-white p-6 shadow-sm">
-        <h3 className="mb-5 text-lg font-semibold text-slate-900">{t('page.salesDetail.sections.baseInfo')}</h3>
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold text-slate-900">订单头信息</h3>
+          <p className="mt-1 text-sm text-slate-500">这里记录商务承诺主信息。客户确认意见、颜色尺码备注和交付边界也从这里沉淀，后续部门围绕这一张订单继续展开。</p>
+        </div>
         <div className="grid gap-4 lg:grid-cols-4">
           {[
             ['salesNo', 'salesNo'],
@@ -506,6 +581,9 @@ export default function SalesOrderDetailPage() {
               onChange={(event) => updateBaseInfo('remark', event.target.value)}
               className="h-44 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
             />
+            <p className="mt-2 text-xs leading-5 text-slate-400">
+              建议记录客户确认意见、颜色尺码特殊说明、交付限制、客户来料要求或参考材料方向。正式技术 BOM 不在这里冻结。
+            </p>
           </div>
         </div>
       </section>
@@ -515,8 +593,8 @@ export default function SalesOrderDetailPage() {
       <section className="rounded-3xl bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{t('page.salesDetail.sections.bulkInfo')}</h3>
-            <p className="text-sm text-slate-500">{t('page.salesDetail.sections.bulkHint')}</p>
+            <h3 className="text-lg font-semibold text-slate-900">订单明细（颜色 / 尺码 / 数量）</h3>
+            <p className="text-sm text-slate-500">这里就是销售明细的主维护位置。销售确认的颜色、尺码、数量拆分，不需要再单独起一张平行源头单。</p>
           </div>
           <button
             type="button"
@@ -526,6 +604,10 @@ export default function SalesOrderDetailPage() {
             <Plus size={14} />
             {t('page.salesDetail.actions.addBulkRow')}
           </button>
+        </div>
+        <div className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm text-indigo-900">
+          当前颜色尺码拆分合计 <span className="font-semibold">{totalBulkQty || 0}</span> 件。
+          如果订单头数量与这里不一致，应以业务确认后的明细拆分为准，再同步下游技术与计划。
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -649,7 +731,7 @@ export default function SalesOrderDetailPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-slate-900">{t('page.salesDetail.sections.materials')}</h3>
-            <p className="text-sm text-slate-500">{t('page.salesDetail.sections.materialsHint')}</p>
+            <p className="text-sm text-slate-500">销售侧在这里记录客户指定主辅料、参考纱线或来料方向，帮助技术和采购理解需求，但不替代正式 BOM 冻结。</p>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => addMaterial('main')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
@@ -659,6 +741,9 @@ export default function SalesOrderDetailPage() {
               {t('page.salesDetail.actions.addAuxMaterial')}
             </button>
           </div>
+        </div>
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          这里是客户原料要求 / 参考材料区，不是正式技术 BOM。技术科审核并冻结后，采购、出入库和生产才应按正式 BOM 执行。
         </div>
 
         {[

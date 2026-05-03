@@ -94,6 +94,7 @@ export default function ControlPlanPage() {
 
   const handleSaveChar = async () => {
     if (!editingChar?.charName) { toast.error('请填写特性名称'); return; }
+    if (editingChar?.processId == null) { toast.error('请填写工序ID'); return; }
     if (!selectedPlan) { toast.error('请先选择控制计划'); return; }
     try {
       const data = { ...editingChar, planId: selectedPlan.id };
@@ -208,6 +209,7 @@ export default function ControlPlanPage() {
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
                     <th className="pb-2 pr-2">#</th>
+                    <th className="pb-2 pr-2">工序ID</th>
                     <th className="pb-2 pr-2">特性名称</th>
                     <th className="pb-2 pr-2">规格值</th>
                     <th className="pb-2 pr-2">公差</th>
@@ -221,6 +223,7 @@ export default function ControlPlanPage() {
                   {characteristics.map((c, idx) => (
                     <tr key={c.id || idx} className="border-b border-slate-100">
                       <td className="py-2 pr-2 text-slate-400">{c.sortOrder || idx + 1}</td>
+                      <td className="py-2 pr-2">{c.processId ?? '-'}</td>
                       <td className="py-2 pr-2 font-medium text-slate-800">{c.charName}</td>
                       <td className="py-2 pr-2">{c.specValue || '-'}</td>
                       <td className="py-2 pr-2">
@@ -308,6 +311,12 @@ export default function ControlPlanPage() {
                   value={editingChar?.charName || ''}
                   onChange={(e) => setEditingChar({ ...editingChar, charName: e.target.value })}
                   placeholder="如：领口尺寸" />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">工序ID *</label>
+                <input type="number" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={editingChar?.processId ?? ''}
+                  onChange={(e) => setEditingChar({ ...editingChar, processId: e.target.value ? Number(e.target.value) : undefined })} />
               </div>
               <div>
                 <label className="block text-sm text-slate-600 mb-1">规格值</label>

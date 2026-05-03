@@ -1,23 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import * as processRouteApi from '@/api/processRoute';
 import * as productionApi from '@/api/production';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import { toast } from '@/components/ui/Toast';
 import { useDictOptions } from '@/hooks/useDictOptions';
-import { buildDocNo } from '@/utils/detailDraft';
 
 interface ProducePlanOption {
   id: number;
   planNo?: string;
   salesNo?: string;
   salesOrderId?: number;
+  customerName?: string;
+  bulkOrderNo?: string;
+  sampleStyleNo?: string;
   styleCode?: string;
   colorCode?: string;
   sizeCode?: string;
   planQty?: number;
   status?: string;
   processRouteId?: number;
+  techId?: number;
+  noticeId?: number;
+  srcBillType?: string;
+  srcBillId?: number;
+  srcBillNo?: string;
 }
 
 interface ProcessRouteOption {
@@ -32,16 +40,14 @@ interface JobFormProps {
   onCancel: () => void;
 }
 
-function buildJobNo() {
-  return buildDocNo('JOB');
-}
-
 export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormProps) {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<ProducePlanOption[]>([]);
   const [routes, setRoutes] = useState<ProcessRouteOption[]>([]);
   const [form, setForm] = useState<Record<string, string>>({});
+  const sourcePlanId = searchParams.get('producePlanId') || searchParams.get('planId') || '';
 
   const planStatus = useDictOptions('erp_plan_status', [
     { value: '0', label: t('page.job.form.status.pending') },
@@ -72,6 +78,14 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
         jobNo: String(initialValues.jobNo ?? ''),
         producePlanId: String(initialValues.producePlanId ?? ''),
         salesNo: String(initialValues.salesNo ?? ''),
+        customerName: String(initialValues.customerName ?? ''),
+        bulkOrderNo: String(initialValues.bulkOrderNo ?? ''),
+        sampleStyleNo: String(initialValues.sampleStyleNo ?? initialValues.styleCode ?? ''),
+        techId: String(initialValues.techId ?? ''),
+        noticeId: String(initialValues.noticeId ?? ''),
+        srcBillType: String(initialValues.srcBillType ?? ''),
+        srcBillId: String(initialValues.srcBillId ?? ''),
+        srcBillNo: String(initialValues.srcBillNo ?? ''),
         styleCode: String(initialValues.styleCode ?? ''),
         colorCode: String(initialValues.colorCode ?? ''),
         sizeCode: String(initialValues.sizeCode ?? ''),
@@ -84,9 +98,17 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
     }
 
     setForm({
-      jobNo: buildJobNo(),
-      producePlanId: '',
+      jobNo: '',
+      producePlanId: sourcePlanId,
       salesNo: '',
+      customerName: '',
+      bulkOrderNo: '',
+      sampleStyleNo: '',
+      techId: '',
+      noticeId: '',
+      srcBillType: '',
+      srcBillId: '',
+      srcBillNo: '',
       styleCode: '',
       colorCode: '',
       sizeCode: '',
@@ -95,7 +117,7 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
       status: planStatus.options[0]?.value || '0',
       remark: '',
     });
-  }, [initialValues, planStatus.options]);
+  }, [initialValues, planStatus.options, sourcePlanId]);
 
   const selectedPlan = useMemo(
     () => plans.find((item) => String(item.id) === String(form.producePlanId || '')),
@@ -124,6 +146,14 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
     setForm((prev) => ({
       ...prev,
       salesNo: selectedPlan.salesNo || '',
+      customerName: selectedPlan.customerName || '',
+      bulkOrderNo: selectedPlan.bulkOrderNo || '',
+      sampleStyleNo: selectedPlan.sampleStyleNo || selectedPlan.styleCode || '',
+      techId: selectedPlan.techId != null ? String(selectedPlan.techId) : prev.techId,
+      noticeId: selectedPlan.noticeId != null ? String(selectedPlan.noticeId) : prev.noticeId,
+      srcBillType: selectedPlan.srcBillType || prev.srcBillType,
+      srcBillId: selectedPlan.srcBillId != null ? String(selectedPlan.srcBillId) : prev.srcBillId,
+      srcBillNo: selectedPlan.srcBillNo || prev.srcBillNo,
       styleCode: selectedPlan.styleCode || '',
       colorCode: prev.colorCode || selectedPlan.colorCode || '',
       sizeCode: prev.sizeCode || selectedPlan.sizeCode || '',
@@ -156,12 +186,14 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
 
     setLoading(true);
     try {
-      await onSubmit({
-        ...initialValues,
-        jobNo: form.jobNo,
-        producePlanId: Number(form.producePlanId),
-        orderId: selectedPlan?.salesOrderId ?? undefined,
-        salesNo: form.salesNo,
+        await onSubmit({
+          ...initialValues,
+          jobNo: form.jobNo?.trim() ? form.jobNo.trim() : undefined,
+          producePlanId: Number(form.producePlanId),
+          orderId: selectedPlan?.salesOrderId ?? undefined,
+          customerName: form.customerName || selectedPlan?.customerName || undefined,
+          createdFrom: form.srcBillNo || form.srcBillType || selectedPlan?.planNo || undefined,
+          salesNo: form.salesNo,
         styleCode: form.styleCode,
         colorCode: form.colorCode || undefined,
         sizeCode: form.sizeCode || undefined,
@@ -189,6 +221,14 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
       <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
         {t('page.job.form.banner')}
       </div>
+      {(form.producePlanId || form.srcBillNo || form.srcBillType) && (
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          当前工单已承接计划与来源：
+          {selectedPlan?.planNo || form.producePlanId || '-'}
+          {form.srcBillNo ? ` · ${form.srcBillNo}` : form.srcBillType ? ` · ${form.srcBillType}` : ''}
+          {form.techId ? ` · 技术单#${form.techId}` : ''}
+        </div>
+      )}
 
       <DocumentCodeBoard
         title={t('page.job.form.codeBoard.title')}
@@ -196,7 +236,7 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
         items={[
           {
             label: t('page.job.form.codeBoard.items.jobNo.label'),
-            value: form.jobNo,
+            value: form.jobNo || t('common.autoGenerate', { defaultValue: '保存后自动生成' }),
             helper: t('page.job.form.codeBoard.items.jobNo.helper'),
             tone: 'primary',
           },
@@ -210,6 +250,11 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
             label: t('page.job.form.codeBoard.items.salesNo.label'),
             value: form.salesNo,
             helper: t('page.job.form.codeBoard.items.salesNo.helper'),
+          },
+          {
+            label: '来源计划/单据',
+            value: selectedPlan?.planNo || form.srcBillNo || form.srcBillType,
+            helper: '工单应承接计划与上游来源，而不是现场重新断链。',
           },
           {
             label: t('page.job.form.codeBoard.items.styleQty.label'),
@@ -227,6 +272,7 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
         <input
           value={form.jobNo || ''}
           onChange={(event) => updateField('jobNo', event.target.value)}
+          placeholder={t('common.autoGenerate', { defaultValue: '保存后自动生成' })}
           className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
           aria-label={t('page.job.columns.jobNo')}
         />
@@ -256,10 +302,16 @@ export default function JobForm({ initialValues, onSubmit, onCancel }: JobFormPr
       </div>
 
       <ReadonlyField label={t('page.job.columns.salesNo')} value={form.salesNo} />
+      <ReadonlyField label={t('page.plan.form.customerName', { defaultValue: '客户名称' })} value={form.customerName} />
+      <ReadonlyField label="大货款号" value={form.bulkOrderNo} />
+      <ReadonlyField label="打样款号" value={form.sampleStyleNo} />
       <ReadonlyField label={t('page.job.columns.styleCode')} value={form.styleCode} />
       <ReadonlyField label={t('page.job.columns.colorCode')} value={form.colorCode} />
       <ReadonlyField label={t('page.job.columns.sizeCode')} value={form.sizeCode} />
       <ReadonlyField label={t('page.job.columns.planQty')} value={form.planQty} />
+      <ReadonlyField label="来源单据" value={form.srcBillNo || form.srcBillType} />
+      <ReadonlyField label="计划承接路线" value={selectedPlan?.processRouteId ? `路线#${selectedPlan.processRouteId}` : '-'} />
+      <ReadonlyField label="计划承接工作中心" value={selectedPlan?.workCenterId ? `工作中心#${selectedPlan.workCenterId}` : '-'} />
 
       <div className="flex items-center gap-3">
         <label className="w-28 shrink-0 text-right text-sm text-slate-600">

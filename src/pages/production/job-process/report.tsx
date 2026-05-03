@@ -10,6 +10,8 @@ import * as reportLogApi from '@/api/produceReportLog';
 import * as processDefApi from '@/api/processDef';
 import * as jobApi from '@/api/production';
 import { toast } from '@/components/ui/Toast';
+import { useAppStore } from '@/stores/appStore';
+import { getCompanyLabel } from '@/utils/companyContext';
 import DefectForm from './DefectForm';
 import ProcessFlow from './ProcessFlow';
 
@@ -103,6 +105,17 @@ function isReportableProcess(process: ProcessStep) {
   return process?.processStatus === 'PENDING' || process?.processStatus === 'RUNNING';
 }
 
+type ReportPageState =
+  | {
+      kind: 'reportable';
+    }
+  | {
+      kind: 'qc_wait' | 'rework' | 'blocked' | 'done' | 'empty';
+      title: string;
+      hint: string;
+      actionLabel: string;
+    };
+
 function normalizeProcessRows(response: any): ProcessStep[] {
   if (Array.isArray(response)) return response;
   if (Array.isArray(response?.rows)) return response.rows;
@@ -116,6 +129,8 @@ export default function ProcessReportPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetProcessId = searchParams.get('processId');
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
 
   const [job, setJob] = useState<ProduceJob | null>(null);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
@@ -130,6 +145,9 @@ export default function ProcessReportPage() {
   const [materialConsumes, setMaterialConsumes] = useState<MaterialConsumeItem[]>([]);
   const [materialLoading, setMaterialLoading] = useState(false);
   const [bindingConsumeId, setBindingConsumeId] = useState<number | null>(null);
+  const [pageAccessDenied, setPageAccessDenied] = useState(false);
+  const [repairingChain, setRepairingChain] = useState(false);
+  const [chainRepairMessage, setChainRepairMessage] = useState('');
   const [customAction, setCustomAction] = useState({
     processId: '',
     processSeq: '',
@@ -219,7 +237,83 @@ export default function ProcessReportPage() {
     [materialConsumes],
   );
 
+  const reportPageState = useMemo<ReportPageState>(() => {
+    if (currentProcess) {
+      return { kind: 'reportable' };
+    }
+
+    const waitingCheckProcess = processes.find((item) => item.processStatus === 'WAIT_CHECK') || null;
+    if (waitingCheckProcess) {
+      return {
+        kind: 'qc_wait',
+        title: t('page.jobProcessReport.pendingQcTitle'),
+        hint: t('page.jobProcessReport.pendingQcHint', {
+          process: waitingCheckProcess.processName || t('page.jobProcessReport.processFallback', { seq: waitingCheckProcess.processSeq }),
+        }),
+        actionLabel: t('page.jobProcessReport.pendingQcAction'),
+      };
+    }
+
+    const failedProcess = processes.find((item) => item.processStatus === 'FAIL') || null;
+    if (failedProcess) {
+      return {
+        kind: 'rework',
+        title: t('page.jobProcessReport.reworkTitle'),
+        hint: t('page.jobProcessReport.reworkHint', {
+          process: failedProcess.processName || t('page.jobProcessReport.processFallback', { seq: failedProcess.processSeq }),
+        }),
+        actionLabel: t('page.jobProcessReport.returnToList'),
+      };
+    }
+
+    const allDone = processes.length > 0 && processes.every((item) => item.processStatus === 'PASS');
+    if (allDone) {
+      return {
+        kind: 'done',
+        title: t('page.jobProcessReport.allDone'),
+        hint: t('page.jobProcessReport.allDoneHint'),
+        actionLabel: t('page.jobProcessReport.returnToList'),
+      };
+    }
+
+    const blockedProcess = processes.find((item) => item.processStatus === 'BLOCKED') || null;
+    if (blockedProcess) {
+      return {
+        kind: 'blocked',
+        title: t('page.jobProcessReport.blockedTitle'),
+        hint: t('page.jobProcessReport.blockedHint', {
+          process: blockedProcess.processName || t('page.jobProcessReport.processFallback', { seq: blockedProcess.processSeq }),
+        }),
+        actionLabel: t('page.jobProcessReport.returnToList'),
+      };
+    }
+
+    return {
+      kind: 'empty',
+      title: t('page.jobProcessReport.noProcessTitle'),
+      hint: t('page.jobProcessReport.noProcessHint'),
+      actionLabel: t('page.jobProcessReport.returnToList'),
+    };
+  }, [currentProcess, processes, t]);
+
   const formatAmount = (value: number) => value.toFixed(2);
+
+  const resetPageState = () => {
+    setJob(null);
+    setEmployees([]);
+    setCurrentProcess(null);
+    setForm(EMPTY_FORM);
+    setDefects([]);
+    setProcesses([]);
+    setMaterialConsumes([]);
+    setBindingConsumeId(null);
+    setCustomAction({
+      processId: '',
+      processSeq: '',
+      reason: '',
+      isOutsource: '0',
+    });
+  };
 
   useEffect(() => {
     setForm((prev) => ({ ...prev, defectQty: String(defectQtyNum) }));
@@ -227,6 +321,7 @@ export default function ProcessReportPage() {
 
   useEffect(() => {
     if (!jobId) {
+      resetPageState();
       setLoading(false);
       return;
     }
@@ -235,6 +330,8 @@ export default function ProcessReportPage() {
 
     async function loadPage() {
       setLoading(true);
+      setPageAccessDenied(false);
+      setChainRepairMessage('');
       try {
         const [jobRes, processRes, employeeRes] = await Promise.all([
           jobApi.getProduceJob(numericJobId).catch(() => null),
@@ -242,18 +339,52 @@ export default function ProcessReportPage() {
           employeeApi.listEmployee({ pageNum: 1, pageSize: 999, status: '0' }).catch(() => null),
         ]);
 
-        setJob(jobRes?.data || jobRes || null);
+        const nextJob = jobRes?.data || jobRes || null;
         setEmployees(employeeRes?.rows || []);
 
-        const rows = normalizeProcessRows(processRes);
-        const sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
+        let rows = normalizeProcessRows(processRes);
+        let sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
+
+        if (nextJob && sorted.length === 0) {
+          setRepairingChain(true);
+          try {
+            await jobApi.repairJobProcesses(numericJobId);
+            const repairedProcessRes = await jobProcessApi.listByJob(numericJobId).catch(() => null);
+            rows = normalizeProcessRows(repairedProcessRes);
+            sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
+            if (sorted.length > 0) {
+              setChainRepairMessage(t('page.jobProcessReport.chainRepairSuccess'));
+            }
+          } catch (error: any) {
+            setChainRepairMessage(error?.message || t('page.jobProcessReport.chainRepairFailed'));
+          } finally {
+            setRepairingChain(false);
+          }
+        }
+
+        if (!nextJob || sorted.length === 0) {
+          resetPageState();
+          setEmployees(employeeRes?.rows || []);
+          setPageAccessDenied(true);
+          return;
+        }
+
+        setJob(nextJob);
         setProcesses(sorted);
+
+        const currentProcessRes = await jobProcessApi.getCurrentProcess(numericJobId).catch(() => null);
+        const resolvedCurrent = currentProcessRes?.data || currentProcessRes || null;
+        const currentFromServer = resolvedCurrent && resolvedCurrent.id
+          ? sorted.find((item) => item.id === resolvedCurrent.id) || resolvedCurrent
+          : null;
 
         const scannedProcess = targetProcessId
           ? sorted.find((item) => String(item.id) === targetProcessId)
           : null;
         const nextProcess = (scannedProcess && isReportableProcess(scannedProcess))
           ? scannedProcess
+          : (currentFromServer && isReportableProcess(currentFromServer))
+            ? currentFromServer
           : sorted.find((item) => isReportableProcess(item)) || null;
 
         setCurrentProcess(nextProcess);
@@ -267,6 +398,8 @@ export default function ProcessReportPage() {
             employeeName: prev.employeeName,
             inQty: previousProcess?.outQty ? String(previousProcess.outQty) : '',
           }));
+        } else {
+          setForm(EMPTY_FORM);
         }
       } finally {
         setLoading(false);
@@ -274,7 +407,7 @@ export default function ProcessReportPage() {
     }
 
     loadPage();
-  }, [jobId, targetProcessId]);
+  }, [companySignature, jobId, targetProcessId]);
 
   useEffect(() => {
     processDefApi.listProcessDef({ pageNum: 1, pageSize: 999, status: '0' })
@@ -287,6 +420,10 @@ export default function ProcessReportPage() {
 
   useEffect(() => {
     if (!jobId) {
+      setMaterialConsumes([]);
+      return;
+    }
+    if (pageAccessDenied) {
       setMaterialConsumes([]);
       return;
     }
@@ -318,15 +455,33 @@ export default function ProcessReportPage() {
       })
       .catch(() => setMaterialConsumes([]))
       .finally(() => setMaterialLoading(false));
-  }, [currentProcess?.id, jobId]);
+  }, [currentProcess?.id, jobId, pageAccessDenied]);
 
   const reloadProcessState = async (nextInQty?: number) => {
     const numericJobId = Number(jobId);
-    const processRes = await jobProcessApi.listByJob(numericJobId);
+    const [processRes, currentProcessRes] = await Promise.all([
+      jobProcessApi.listByJob(numericJobId),
+      jobProcessApi.getCurrentProcess(numericJobId).catch(() => null),
+    ]);
     const rows = normalizeProcessRows(processRes);
     const sorted = [...rows].sort((a, b) => a.processSeq - b.processSeq);
+    if (sorted.length === 0) {
+      setProcesses([]);
+      setCurrentProcess(null);
+      setDefects([]);
+      setForm(EMPTY_FORM);
+      setPageAccessDenied(true);
+      return null;
+    }
+    setPageAccessDenied(false);
     setProcesses(sorted);
-    const nextProcess = sorted.find((item) => isReportableProcess(item)) || null;
+    const resolvedCurrent = currentProcessRes?.data || currentProcessRes || null;
+    const currentFromServer = resolvedCurrent && resolvedCurrent.id
+      ? sorted.find((item) => item.id === resolvedCurrent.id) || resolvedCurrent
+      : null;
+    const nextProcess = (currentFromServer && isReportableProcess(currentFromServer))
+      ? currentFromServer
+      : sorted.find((item) => isReportableProcess(item)) || null;
     setCurrentProcess(nextProcess);
     setDefects([]);
     setForm({
@@ -621,6 +776,46 @@ export default function ProcessReportPage() {
     );
   }
 
+  if (pageAccessDenied) {
+    return (
+      <div>
+        <div className="mb-6 flex items-center gap-4">
+          <button
+            onClick={() => navigate('/production/job-process')}
+            className="rounded-lg p-2 hover:bg-slate-100"
+            aria-label={t('page.jobProcessReport.backAriaLabel')}
+          >
+            <ArrowLeft size={20} className="text-slate-600" />
+          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">{t('page.jobProcessReport.title')}</h2>
+            <p className="mt-1 text-xs text-slate-400">
+              {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-10 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+            <AlertTriangle size={24} className="text-amber-600" />
+          </div>
+          <h3 className="mb-2 text-lg font-semibold text-slate-800">
+            {t('page.jobProcessReport.deniedTitle', { defaultValue: '当前工厂无权查看这张工票' })}
+          </h3>
+          <p className="mb-5 text-sm text-slate-600">
+            {t('page.jobProcessReport.deniedHint', { defaultValue: '你已切换到当前工厂视角，系统已清空其他工厂的报工详情。请返回报工列表查看本工厂数据。' })}
+          </p>
+          <button
+            onClick={() => navigate('/production/job-process')}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
+          >
+            {t('common.back')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!job) {
     return <div className="py-12 text-center text-slate-400">{t('page.jobProcessReport.notFound')}</div>;
   }
@@ -646,8 +841,27 @@ export default function ProcessReportPage() {
               planQty: job.planQty || 0,
             })}
           </p>
+          <p className="mt-1 text-xs text-slate-400">
+            {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{getCompanyLabel(currentCompany.code, t)}
+          </p>
         </div>
       </div>
+
+      {repairingChain ? (
+        <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+          {t('page.jobProcessReport.chainRepairing')}
+        </div>
+      ) : null}
+
+      {chainRepairMessage ? (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
+          currentProcess || processes.length > 0
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            : 'border-amber-200 bg-amber-50 text-amber-700'
+        }`}>
+          {chainRepairMessage}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
@@ -902,17 +1116,51 @@ export default function ProcessReportPage() {
             </div>
           ) : (
             <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                <ChevronRight size={24} className="text-emerald-500" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-800">{t('page.jobProcessReport.noProcessTitle')}</h3>
-              <p className="mb-4 text-sm text-slate-500">{t('page.jobProcessReport.noProcessHint')}</p>
-              <button
-                onClick={() => navigate('/production/job-process')}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+              <div
+                className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
+                  reportPageState.kind === 'qc_wait'
+                    ? 'bg-amber-100'
+                    : reportPageState.kind === 'rework'
+                      ? 'bg-red-100'
+                      : reportPageState.kind === 'done'
+                        ? 'bg-emerald-100'
+                        : 'bg-slate-100'
+                }`}
               >
-                {t('common.back')}
-              </button>
+                {reportPageState.kind === 'done' ? (
+                  <ChevronRight size={24} className="text-emerald-500" />
+                ) : (
+                  <AlertTriangle
+                    size={24}
+                    className={
+                      reportPageState.kind === 'qc_wait'
+                        ? 'text-amber-500'
+                        : reportPageState.kind === 'rework'
+                          ? 'text-red-500'
+                          : 'text-slate-400'
+                    }
+                  />
+                )}
+              </div>
+              <h3 className="mb-2 text-lg font-semibold text-slate-800">{reportPageState.title}</h3>
+              <p className="mb-4 text-sm text-slate-500">{reportPageState.hint}</p>
+              <div className="flex justify-center gap-3">
+                {reportPageState.kind === 'qc_wait' ? (
+                  <button
+                    onClick={() => navigate(`/quality/inspection?jobNo=${encodeURIComponent(job?.jobNo || '')}`)}
+                    className="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white hover:bg-amber-700"
+                  >
+                    {reportPageState.actionLabel}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/production/job-process')}
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+                  >
+                    {reportPageState.actionLabel}
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

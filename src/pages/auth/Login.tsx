@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n, { LANGUAGE_STORAGE_KEY } from '@/i18n';
 import { useAuthStore } from '@/stores/authStore';
+import { setDocumentTitle } from '@/utils/documentTitle';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -14,6 +15,10 @@ export default function Login() {
   const getInfo = useAuthStore((state) => state.getInfo);
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  useEffect(() => {
+    setDocumentTitle('/login');
+  }, []);
 
   const handleLanguageChange = async (language: 'zh' | 'ja') => {
     await i18n.changeLanguage(language);

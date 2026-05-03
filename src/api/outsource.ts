@@ -19,3 +19,15 @@ export function updateOutsource(data: any) {
 export function delOutsource(ids: string) {
   return client.delete(`/erp/outsource/${ids}`);
 }
+
+export function submitOutsource(id: number) {
+  return client.put(`/erp/outsource/submit/${id}`);
+}
+
+export function approveOutsource(id: number) {
+  return client.put(`/erp/outsource/approve/${id}`);
+}
+
+export function rejectOutsource(id: number) {
+  return client.put(`/erp/outsource/reject/${id}`);
+}

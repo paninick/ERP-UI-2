@@ -4,6 +4,9 @@ import { ArrowLeft, Plus, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import * as noticeApi from '@/api/notice';
 import { toast } from '@/components/ui/Toast';
+import { useAppStore } from '@/stores/appStore';
+import { unwrapAjaxResultData } from '@/utils/ajaxResult';
+import { getCompanyLabel } from '@/utils/companyContext';
 import { createRowId, readDraft, writeDraft } from '@/utils/detailDraft';
 
 interface SampleRow {
@@ -89,10 +92,13 @@ export default function NoticeDetailPage() {
   const { t } = useTranslation();
   const { id = 'new' } = useParams();
   const navigate = useNavigate();
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [record, setRecord] = useState<any>(null);
   const [draft, setDraft] = useState<NoticeDetailDraft | null>(null);
+  const [recordMissing, setRecordMissing] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -100,13 +106,15 @@ export default function NoticeDetailPage() {
     async function load() {
       setLoading(true);
       try {
-        const response: any = id === 'new' ? null : await noticeApi.getNotice(Number(id)).catch(() => null);
-        const nextRecord = response?.data || response || {};
+        const isNewRecord = id === 'new';
+        const response: any = isNewRecord ? null : await noticeApi.getNotice(Number(id)).catch(() => null);
+        const nextRecord = isNewRecord ? null : unwrapAjaxResultData<any>(response);
         if (!mounted) {
           return;
         }
+        setRecordMissing(!isNewRecord && !nextRecord);
         setRecord(nextRecord);
-        setDraft(readDraft('notice-detail', id, defaultDraft(nextRecord)));
+        setDraft(isNewRecord || nextRecord ? readDraft('notice-detail', id, defaultDraft(nextRecord)) : null);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -118,7 +126,7 @@ export default function NoticeDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [companySignature, id]);
 
   useEffect(() => {
     if (draft) {
@@ -243,6 +251,14 @@ export default function NoticeDetailPage() {
   };
 
   if (loading || !draft) {
+    if (!loading && recordMissing) {
+      return (
+        <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">
+          <div className="mb-2 text-sm text-slate-500">当前公司：{getCompanyLabel(currentCompany.code, t)}</div>
+          未找到对应的打样通知
+        </div>
+      );
+    }
     return <div className="rounded-2xl bg-white p-10 text-center text-slate-400 shadow-sm">{t('page.noticeDetail.loading')}</div>;
   }
 
@@ -295,16 +311,28 @@ export default function NoticeDetailPage() {
           ))}
         </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[200px_1fr]">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[260px_1fr]">
           <div>
             <label className="mb-1 block text-sm text-slate-500">{t('page.noticeDetail.sections.styleImage')}</label>
-            <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400">
-              {draft.baseInfo.styleImageName || t('page.noticeDetail.empty.styleImagePlaceholder')}
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3">
+              <div className="flex h-32 items-center justify-center rounded-xl bg-white text-sm text-slate-400">
+                {draft.baseInfo.styleImageName || t('page.noticeDetail.empty.styleImagePlaceholder')}
+              </div>
+              <input
+                value={draft.baseInfo.styleImageName}
+                onChange={(event) => updateBase('styleImageName', event.target.value)}
+                className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                placeholder={t('page.noticeDetail.empty.styleImageInputPlaceholder')}
+              />
+              <p className="mt-2 text-xs text-slate-500">{t('page.noticeDetail.sections.styleImageHint')}</p>
             </div>
             <label className="mt-4 mb-1 block text-sm text-slate-500">{t('page.noticeDetail.sections.attachments')}</label>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
-              {draft.baseInfo.attachmentNames || t('page.noticeDetail.sections.attachmentsPlaceholder')}
-            </div>
+            <textarea
+              value={draft.baseInfo.attachmentNames}
+              onChange={(event) => updateBase('attachmentNames', event.target.value)}
+              className="min-h-20 w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 outline-none focus:border-indigo-400"
+              placeholder={t('page.noticeDetail.sections.attachmentsPlaceholder')}
+            />
           </div>
           <div>
             <label className="mb-1 block text-sm text-slate-500">{t('page.noticeDetail.sections.remark')}</label>

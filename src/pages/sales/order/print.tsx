@@ -6,6 +6,7 @@ import * as salesApi from '@/api/sales';
 import DocumentCodeBoard from '@/components/business/DocumentCodeBoard';
 import PrintCodeStrip from '@/components/business/PrintCodeStrip';
 import { useDictOptions } from '@/hooks/useDictOptions';
+import { unwrapAjaxResultData } from '@/utils/ajaxResult';
 import { buildSalesOrderDetailLink, buildSalesOrderPrintLink } from '@/utils/businessLinks';
 
 interface BulkRow {
@@ -56,7 +57,7 @@ export default function SalesOrderPrintPage() {
       try {
         const response: any = await salesApi.getSalesOrder(Number(id)).catch(() => null);
         if (mounted) {
-          setRecord(response?.data || response || null);
+          setRecord(unwrapAjaxResultData<SalesOrderRecord>(response));
         }
       } finally {
         if (mounted) {

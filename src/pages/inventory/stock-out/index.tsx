@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
@@ -28,6 +30,7 @@ function normalizeRows(payload: any) {
 
 export default function StockOutPage() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailRows, setDetailRows] = useState<any[]>([]);
   const [detailTitle, setDetailTitle] = useState('');
@@ -85,6 +88,16 @@ export default function StockOutPage() {
     { name: 'bulkOrderNo', label: t(`${S}.bulkOrderNo`) },
     { name: 'confirmStatus', label: t(`${S}.confirmStatus`), type: 'select' as const, options: confirmStatus.options },
   ];
+
+  const initialSearchParams = useMemo(
+    () => ({
+      sn: searchParams.get('sn') || '',
+      purchaseSn: searchParams.get('purchaseSn') || '',
+      bulkOrderNo: searchParams.get('bulkOrderNo') || '',
+      confirmStatus: searchParams.get('confirmStatus') || '',
+    }),
+    [searchParams],
+  );
 
   const formFields = [
     { name: 'sn', label: t('page.stockOut.columns.stockOutNo'), required: true, group: t(`${S}.groupBasic`) },
@@ -290,6 +303,7 @@ export default function StockOutPage() {
         columns={columns}
         searchFields={searchFields}
         FormComponent={(props) => <GenericForm {...props} fields={formFields} />}
+        initialSearchParams={initialSearchParams}
         extraActions={(record: any) => (
           <>
             <button

@@ -1,13 +1,14 @@
 import {useCallback, useEffect, useState} from 'react';
 import i18n from '@/i18n';
 import {toast} from '@/components/ui/Toast';
+import { useAppStore } from '@/stores/appStore';
 
 interface CrudApi {
   list: (params: any) => Promise<any>;
-  get: (id: number) => Promise<any>;
-  add: (data: any) => Promise<any>;
-  update: (data: any) => Promise<any>;
-  remove: (ids: string) => Promise<any>;
+  get?: (id: number) => Promise<any>;
+  add?: (data: any) => Promise<any>;
+  update?: (data: any) => Promise<any>;
+  remove?: (ids: string) => Promise<any>;
 }
 
 interface PaginationState {
@@ -17,6 +18,7 @@ interface PaginationState {
 }
 
 export function useCrud(api: CrudApi) {
+  const companySignature = useAppStore((state) => `${state.currentCompany.code}:${state.currentCompany.factoryId ?? 'all'}`);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({pageNum: 1, pageSize: 10, total: 0});
@@ -37,7 +39,7 @@ export function useCrud(api: CrudApi) {
     } finally {
       setLoading(false);
     }
-  }, [api, pagination.pageNum, pagination.pageSize, queryParams]);
+  }, [api, pagination.pageNum, pagination.pageSize, queryParams, companySignature]);
 
   useEffect(() => {
     fetchData();
@@ -58,6 +60,7 @@ export function useCrud(api: CrudApi) {
   };
 
   const handleAdd = async (formData: any) => {
+    if (!api.add) return;
     try {
       await api.add(formData);
       toast.success(i18n.t('common.addSuccess'));
@@ -69,6 +72,7 @@ export function useCrud(api: CrudApi) {
   };
 
   const handleUpdate = async (formData: any) => {
+    if (!api.update) return;
     try {
       await api.update(formData);
       toast.success(i18n.t('common.updateSuccess'));
@@ -80,6 +84,7 @@ export function useCrud(api: CrudApi) {
   };
 
   const handleDelete = async (ids: string) => {
+    if (!api.remove) return;
     try {
       await api.remove(ids);
       toast.success(i18n.t('common.deleteSuccess'));

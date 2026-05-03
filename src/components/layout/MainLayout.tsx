@@ -1,17 +1,23 @@
 import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAppStore } from '@/stores/appStore';
+import { useAuthStore } from '@/stores/authStore';
 import ToastContainer from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { setDocumentTitle } from '@/utils/documentTitle';
 
 export default function MainLayout() {
   const { t } = useTranslation();
+  const location = useLocation();
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const setAutoCollapse = useAppStore((s) => s.setAutoCollapse);
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const getInfo = useAuthStore((state) => state.getInfo);
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 1023px)');
@@ -22,6 +28,15 @@ export default function MainLayout() {
     mql.addEventListener('change', handleChange);
     return () => mql.removeEventListener('change', handleChange);
   }, [setAutoCollapse]);
+
+  useEffect(() => {
+    if (!token || user) return;
+    getInfo().catch(() => {});
+  }, [token, user, getInfo]);
+
+  useEffect(() => {
+    setDocumentTitle(location.pathname);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-slate-50">

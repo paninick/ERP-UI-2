@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import CrudPage from '@/components/ui/CrudPage';
 import * as purchaseApi from '@/api/purchase';
 import { useDictOptions } from '@/hooks/useDictOptions';
@@ -23,6 +25,7 @@ function renderTag(
 
 export default function PurchasePage() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const purchaseType = useDictOptions('erp_purchase_type', [
     { value: 'RAW', label: t('page.purchase.type.raw') },
     { value: 'AUX', label: t('page.purchase.type.auxiliary') },
@@ -47,6 +50,21 @@ export default function PurchasePage() {
     { key: 'supplierName', title: t('page.purchase.columns.supplierName') },
     { key: 'bulkOrderNo', title: t('page.purchase.columns.bulkOrderNo') },
     { key: 'description', title: t('page.purchase.columns.description') },
+    {
+      key: 'substituteSummary',
+      title: '替代提示',
+      render: (_value: string, record: any) => {
+        if (!record?.approvedSubstituteCount) {
+          return <span className="text-slate-400">-</span>;
+        }
+        return (
+          <div className="max-w-[240px] text-xs leading-5 text-amber-700">
+            <div className="font-medium">已命中 {record.approvedSubstituteCount} 条批准替代</div>
+            <div className="mt-1 text-slate-500">{record.substituteSummary || '请按替代关系复核采购物料'}</div>
+          </div>
+        );
+      },
+    },
     { key: 'expectedDeliveryDate', title: t('page.purchase.columns.expectedDeliveryDate') },
     { key: 'purchaseName', title: t('page.purchase.columns.purchaseName') },
     {
@@ -67,6 +85,15 @@ export default function PurchasePage() {
     { name: 'status', label: t('page.purchase.columns.status'), type: 'select' as const, options: purchaseStatus.options },
   ];
 
+  const initialSearchParams = useMemo(
+    () => ({
+      sn: searchParams.get('sn') || '',
+      type: searchParams.get('type') || '',
+      status: searchParams.get('status') || '',
+    }),
+    [searchParams],
+  );
+
   return (
     <CrudPage
       title={t('page.purchase.title')}
@@ -74,6 +101,7 @@ export default function PurchasePage() {
       columns={columns}
       searchFields={searchFields}
       FormComponent={PurchaseForm}
+      initialSearchParams={initialSearchParams}
     />
   );
 }

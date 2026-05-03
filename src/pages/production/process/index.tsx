@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {ArrowDown, ArrowUp, Plus, Trash2} from 'lucide-react';
+import {ArrowDown, ArrowRight, ArrowUp, GitMerge, Plus, Route, Trash2} from 'lucide-react';
 import * as processDefApi from '@/api/processDef';
 import * as processRouteApi from '@/api/processRoute';
 import BaseModal from '@/components/ui/BaseModal';
@@ -26,6 +27,7 @@ interface RouteItem {
   routeId?: number;
   processId?: number;
   sortOrder?: number;
+  predecessorSeqs?: string;
   isControlPoint?: number;
   requireCompleteRatio?: number;
   allowForceStart?: number;
@@ -93,6 +95,10 @@ function normalizeRows(res: any) {
 function toNumber(value: any, fallback = 0) {
   const next = Number(value);
   return Number.isFinite(next) ? next : fallback;
+}
+
+function parseMultiValue(value?: string) {
+  return (value || '').split(',').map((item) => item.trim()).filter(Boolean);
 }
 
 interface StepCardProps {
@@ -247,6 +253,7 @@ export default function ProcessRoutePage() {
       {
         processId: first?.id,
         sortOrder: (prev.length + 1) * 10,
+        predecessorSeqs: prev.length > 0 ? String(prev.length * 10) : '',
         isControlPoint: 0,
         requireCompleteRatio: 100,
         allowForceStart: 0,
@@ -285,6 +292,7 @@ export default function ProcessRoutePage() {
     ...item,
     sortOrder: (index + 1) * 10,
     processId: toNumber(item.processId),
+    predecessorSeqs: item.predecessorSeqs?.trim() || undefined,
     isControlPoint: toNumber(item.isControlPoint),
     requireCompleteRatio: toNumber(item.requireCompleteRatio, 100),
     allowForceStart: toNumber(item.allowForceStart),
@@ -385,9 +393,16 @@ export default function ProcessRoutePage() {
     {
       key: 'actions',
       title: t(`${S}.actions`),
-      width: '150px',
+      width: '220px',
       render: (_: any, record: any) => (
         <div className="flex gap-2">
+          <NavLink
+            to={`/production/process/${record.id}/overview`}
+            onClick={(event) => event.stopPropagation()}
+            className="rounded px-2 py-1 text-xs text-sky-700 hover:bg-sky-50"
+          >
+            指示书
+          </NavLink>
           <button
             onClick={(event) => {
               event.stopPropagation();
@@ -413,6 +428,47 @@ export default function ProcessRoutePage() {
 
   return (
     <div>
+      <section className="mb-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+          <div>
+            <div className="inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-indigo-700">工艺模板头</div>
+            <h1 className="mt-3 text-2xl font-semibold text-slate-900">{t(`${S}.title`)}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+              工艺路线回答的是“这类产品大概要经过哪些阶段”，更像产品族模板头，不是现场工票。毛衫、常规针织、拼接类产品应先在这里确定路线骨架，再由路线明细继续展开顺序、控制点和外协条件；正式给车间看的工艺指示书则从这里继续下钻。
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                { icon: Route, label: '它是什么', value: '产品族路线模板头' },
+                { icon: GitMerge, label: '核心内容', value: '产品族 / 默认路线 / 启停状态' },
+                { icon: ArrowRight, label: '下游去向', value: '路线明细 / 排期 / 工单' },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="w-fit rounded-2xl bg-white p-2 text-slate-700 shadow-sm">
+                    <item.icon size={18} />
+                  </div>
+                  <p className="mt-3 text-xs uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3">
+            {[
+              { to: '/production/process-def', title: '先看工序定义', detail: '工艺路线应建立在稳定的工序字典之上。' },
+              { to: '/production/process-route-item', title: '再看路线明细', detail: '真正的顺序、控制点和外协条件在明细里展开。' },
+              { to: '/sales/tech', title: '回看大货核版', detail: '工艺路线不是凭空出现，应承接核版后的技术要求。' },
+            ].map((item) => (
+              <NavLink key={item.to} to={item.to} className="group rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-indigo-300 hover:bg-indigo-50/50">
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+                <div className="mt-3 flex justify-end text-indigo-700">
+                  <ArrowRight size={16} className="transition group-hover:translate-x-1" />
+                </div>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">{t(`${S}.title`)}</h2>
@@ -580,6 +636,12 @@ export default function ProcessRoutePage() {
                   const isQc = (item.qcRequired ?? 0) === 1;
                   const isControlPoint = (item.isControlPoint ?? 0) === 1;
                   const modeLabel = requiredMode.toTag(item.requiredMode || 'REQUIRED').label;
+                  const predecessorOptions = items.slice(0, index).map((candidate, candidateIndex) => {
+                    const seq = (candidateIndex + 1) * 10;
+                    const candidateProcess = processMap[String(candidate.processId)];
+                    const label = candidateProcess?.processName || t(`${S}.routeItems.unselectedProcess`);
+                    return { value: String(seq), label: `${seq} · ${label}` };
+                  });
 
                   return (
                     <StepCard
@@ -630,6 +692,22 @@ export default function ProcessRoutePage() {
                             {t(`${S}.routeItems.toggleDetail`)}
                           </summary>
                           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <label className="flex items-center gap-2 text-xs">
+                              <span className="w-20 text-slate-500">{t(`${S}.columns.predecessors`)}</span>
+                              <select
+                                multiple
+                                value={parseMultiValue(item.predecessorSeqs)}
+                                onChange={(event) => {
+                                  const selected = Array.from(event.target.selectedOptions).map((option) => option.value);
+                                  updateItem(index, { predecessorSeqs: selected.join(',') });
+                                }}
+                                className="min-h-[72px] flex-1 rounded border border-slate-200 px-2 py-1 outline-none focus:border-indigo-400"
+                              >
+                                {predecessorOptions.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            </label>
                             <label className="flex items-center gap-2 text-xs">
                               <span className="w-20 text-slate-500">{t(`${S}.columns.controlPoint`)}</span>
                               <select

@@ -23,3 +23,15 @@ export function delSalesOrder(ids: string) {
 export function exportSalesOrder(params: any) {
   return client.post('/erp/sales/order/export', params, { responseType: 'blob' });
 }
+
+export function submitSalesOrder(id: number) {
+  return client.put(`/erp/sales/order/submit/${id}`);
+}
+
+export function approveSalesOrder(id: number, remark?: string) {
+  return client.put(`/erp/sales/order/approve/${id}`, remark ? { remark } : undefined);
+}
+
+export function rejectSalesOrder(id: number, remark?: string) {
+  return client.put(`/erp/sales/order/reject/${id}`, { remark: remark || '' });
+}

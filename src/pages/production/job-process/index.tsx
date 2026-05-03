@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { NavLink, useSearchParams } from 'react-router-dom';
+import { ArrowRight, ChevronRight, Factory, LayoutList, TimerReset } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import * as jobApi from '@/api/production';
 import { toast } from '@/components/ui/Toast';
@@ -9,9 +9,14 @@ import Pagination from '@/components/ui/Pagination';
 import SearchForm, { SearchField } from '@/components/ui/SearchForm';
 import { useDictOptions } from '@/hooks/useDictOptions';
 import ProcessFlow from './ProcessFlow';
+import { useAppStore } from '@/stores/appStore';
+import { getCompanyLabel } from '@/utils/companyContext';
 
 export default function JobProcessPage() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
   const jobStatus = useDictOptions('erp_plan_status', [
     { value: '0', label: '待生产' },
     { value: '1', label: '生产中' },
@@ -21,7 +26,8 @@ export default function JobProcessPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageNum: 1, pageSize: 20, total: 0 });
-  const [queryParams, setQueryParams] = useState({ jobNo: '', styleCode: '', status: '' });
+  const customerName = searchParams.get('customerName') || '';
+  const [queryParams, setQueryParams] = useState({ jobNo: '', styleCode: '', status: '', customerName });
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const fetchData = useCallback(
@@ -43,12 +49,20 @@ export default function JobProcessPage() {
         setLoading(false);
       }
     },
-    [pagination.pageNum, pagination.pageSize, queryParams, t],
+    [pagination.pageNum, pagination.pageSize, queryParams, companySignature, t],
   );
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    setQueryParams((prev) => ({ ...prev, customerName }));
+  }, [customerName]);
+
+  useEffect(() => {
+    setSelectedJob(null);
+  }, [companySignature]);
 
   const handleSearch = () => {
     setPagination((prev) => ({ ...prev, pageNum: 1 }));
@@ -56,7 +70,7 @@ export default function JobProcessPage() {
   };
 
   const handleReset = () => {
-    const nextParams = { jobNo: '', styleCode: '', status: '' };
+    const nextParams = { jobNo: '', styleCode: '', status: '', customerName };
     setQueryParams(nextParams);
     setPagination((prev) => ({ ...prev, pageNum: 1 }));
     fetchData({ pageNum: 1, ...nextParams });
@@ -122,7 +136,42 @@ export default function JobProcessPage() {
 
   return (
     <div>
-      <h2 className="mb-4 text-2xl font-bold text-slate-800">{t('page.jobProcess.title')}</h2>
+      <section className="mb-6 overflow-hidden rounded-[30px] border border-slate-200 bg-[linear-gradient(135deg,#111827_0%,#1f2937_45%,#e0f2fe_100%)] px-6 py-6 text-white shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-[1.45fr_1fr]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-100">现场执行明细</p>
+            <h2 className="mt-2 text-3xl font-semibold">{t('page.jobProcess.title')}</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200">这里不是总览看板，而是工票和工序级执行台账。适合班组长、车间主管查看某张工单当前跑到哪道工序、实际报工多少、是否有次品和返工。</p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200/90">在执行链里，它位于“工单之后、质检之前”。也就是说，工单决定做什么，报工记录做到哪里，而质检再根据这里的结果判断是否放行或返工。</p>
+            {customerName ? (
+              <div className="mt-4 rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm text-slate-100">
+                当前客户：{customerName}，当前公司：{getCompanyLabel(currentCompany.code, t)}
+              </div>
+            ) : null}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              { icon: TimerReset, title: '回到预排甘特图', to: customerName ? `/production/gantt?customerName=${encodeURIComponent(customerName)}` : '/production/gantt' },
+              { icon: Factory, title: '回到生产看板', to: customerName ? `/production/kanban?customerName=${encodeURIComponent(customerName)}` : '/production/kanban' },
+              { icon: LayoutList, title: '查看工厂总览', to: '/production/work-center' },
+            ].map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className="group rounded-2xl border border-white/12 bg-white/10 px-4 py-4 transition hover:bg-white/15"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl bg-white/15 p-2">
+                    <item.icon size={18} />
+                  </div>
+                  <span className="flex-1 text-sm font-medium">{item.title}</span>
+                  <ArrowRight size={16} className="transition group-hover:translate-x-1" />
+                </div>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <SearchForm onSearch={handleSearch} onReset={handleReset}>
         <SearchField label={t('page.jobProcess.columns.jobNo')}>
@@ -157,6 +206,15 @@ export default function JobProcessPage() {
               </option>
             ))}
           </select>
+        </SearchField>
+        <SearchField label={t('page.plan.form.customerName', { defaultValue: '客户名称' })}>
+          <input
+            value={queryParams.customerName}
+            onChange={(event) => setQueryParams((prev) => ({ ...prev, customerName: event.target.value }))}
+            aria-label={t('page.plan.form.customerName', { defaultValue: '客户名称' })}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            placeholder={t('page.plan.form.customerName', { defaultValue: '客户名称' })}
+          />
         </SearchField>
       </SearchForm>
 

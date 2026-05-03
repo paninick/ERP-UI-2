@@ -26,6 +26,14 @@ export function autoGeneratePiecewage(wageMonth: string) {
   });
 }
 
+export function confirmPiecewage(id: number) {
+  return client.put(`/erp/piecewage/confirm/${id}`);
+}
+
+export function payPiecewage(id: number) {
+  return client.put(`/erp/piecewage/pay/${id}`);
+}
+
 export function listPiecewageDetailByWage(wageId: number) {
   return client.get(`/erp/piecewagedetail/listByWage/${wageId}`);
 }

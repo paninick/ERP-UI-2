@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import * as jobApi from '@/api/production';
 import client from '@/api/client';
 import { toast } from '@/components/ui/Toast';
+import { useAppStore } from '@/stores/appStore';
+import { getCompanyLabel } from '@/utils/companyContext';
 import {
   AlertTriangle,
   ArrowRight,
@@ -39,10 +41,14 @@ function toNumber(value: number | undefined) {
 
 export default function ProductionKanbanPage() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const currentCompany = useAppStore((state) => state.currentCompany);
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
   const [jobs, setJobs] = useState<ProduceJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
-  const [keyword, setKeyword] = useState('');
+  const customerName = searchParams.get('customerName') || '';
+  const [keyword, setKeyword] = useState(customerName);
 
   const statusMeta = {
     '0': { label: t('page.kanban.status.pending'), chip: 'bg-slate-100 text-slate-700' },
@@ -53,7 +59,7 @@ export default function ProductionKanbanPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const response: any = await jobApi.listProduceJob({ pageNum: 1, pageSize: 200 });
+      const response: any = await jobApi.listProduceJob({ pageNum: 1, pageSize: 200, customerName });
       setJobs(response.rows || []);
     } catch {
       toast.error(t('page.kanban.loadFailed'));
@@ -61,7 +67,7 @@ export default function ProductionKanbanPage() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [companySignature, customerName, t]);
 
   const [stats, setStats] = useState({ totalPlans: 0, totalWipJobs: 0, todayCompleted: 0, weekCompleted: 0, capacityUtilization: 0, onTimeDeliveryRate: 0 });
 
@@ -71,7 +77,7 @@ export default function ProductionKanbanPage() {
       const d = res.data || res || {};
       setStats({ totalPlans: d.totalPlans||0, totalWipJobs: d.totalWipJobs||0, todayCompleted: d.todayCompleted||0, weekCompleted: d.weekCompleted||0, capacityUtilization: d.capacityUtilization||0, onTimeDeliveryRate: d.onTimeDeliveryRate||0 });
     }).catch(() => {});
-  }, [fetchData]);
+  }, [fetchData, companySignature]);
 
   const metrics = useMemo(() => {
     const running = jobs.filter((item) => item.status === '1');
@@ -116,11 +122,12 @@ export default function ProductionKanbanPage() {
         item.planNo,
         item.styleCode,
         item.currentProcessName,
+        customerName,
       ].some((value) => String(value || '').toLowerCase().includes(normalizedKeyword));
 
       return matchesFilter && matchesKeyword;
     });
-  }, [activeFilter, jobs, keyword]);
+  }, [activeFilter, customerName, jobs, keyword]);
 
   const filterTabs: Array<{ key: FilterKey; label: string; count: number }> = [
     { key: 'all', label: t('page.kanban.filters.all'), count: jobs.length },
@@ -137,6 +144,19 @@ export default function ProductionKanbanPage() {
             <p className="text-sm uppercase tracking-[0.28em] text-blue-100">{t('page.kanban.pulse')}</p>
             <h2 className="mt-2 text-3xl font-semibold">{t('page.kanban.title')}</h2>
             <p className="mt-2 text-sm text-blue-50/90">{t('page.kanban.subtitle')}</p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-50/85">
+              生产看板属于现场运行总览层，回答“现在工厂做得怎么样、哪些工单在跑、哪里有风险”。它不是报工明细页，也不是计划审批页，而是厂长和车间主管观察执行状态的第一屏。
+            </p>
+            {customerName ? (
+              <div className="mt-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-blue-50/95 backdrop-blur">
+                当前客户：{customerName}，当前公司：{getCompanyLabel(currentCompany.code, t)}
+              </div>
+            ) : null}
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-blue-100/90">
+              <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">{t('page.kanban.badges.actual')}</span>
+              <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">{t('page.kanban.badges.report')}</span>
+              <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">{t('page.kanban.badges.risk')}</span>
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -241,6 +261,26 @@ export default function ProductionKanbanPage() {
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
         <div className="space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{t('page.kanban.roles.title')}</h3>
+                <p className="mt-1 text-sm text-slate-500">{t('page.kanban.roles.subtitle')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <NavLink to="/production/gantt" className="rounded-full bg-slate-100 px-3 py-2 text-slate-700 transition hover:bg-slate-200">
+                  {t('page.kanban.roles.gantt')}
+                </NavLink>
+                <NavLink to="/production/work-center" className="rounded-full bg-indigo-50 px-3 py-2 text-indigo-700 transition hover:bg-indigo-100">
+                  {t('page.kanban.roles.workCenter')}
+                </NavLink>
+                <NavLink to="/production/job-process" className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700 transition hover:bg-emerald-100">
+                  {t('page.kanban.roles.jobProcess')}
+                </NavLink>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-3xl bg-white p-5 shadow-sm">
             <div className="flex flex-wrap gap-3">
               {filterTabs.map((item) => (

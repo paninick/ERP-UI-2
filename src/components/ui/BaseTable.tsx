@@ -22,6 +22,7 @@ interface BaseTableProps<T> {
   onRowClick?: (record: T) => void;
   ariaLabel?: string;
   emptyAction?: ReactNode;
+  testId?: string;
 }
 
 const skeletonWidths = [80, 65, 90, 55, 75, 60, 85, 50, 70, 55];
@@ -39,6 +40,7 @@ export default function BaseTable<T extends Record<string, any>>({
   onRowClick,
   ariaLabel,
   emptyAction,
+  testId,
 }: BaseTableProps<T>) {
   const { t } = useTranslation();
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -105,7 +107,7 @@ export default function BaseTable<T extends Record<string, any>>({
   );
 
   return (
-    <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-xl bg-white shadow-sm" data-testid={testId}>
       <table className="w-full text-sm" aria-label={ariaLabel}>
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50">

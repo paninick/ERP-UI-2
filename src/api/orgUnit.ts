@@ -1,7 +1,7 @@
 import client from './client';
 
-export function listOrgUnit(params: any) {
-  return client.get('/erp/orgunit/list', { params });
+export function listOrgUnit(params: any, config: Record<string, any> = {}) {
+  return client.get('/erp/orgunit/list', { params, ...config });
 }
 
 export function getOrgUnit(id: number) {
