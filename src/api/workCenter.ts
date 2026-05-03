@@ -19,3 +19,7 @@ export function updateWorkCenter(data: any) {
 export function delWorkCenter(ids: string) {
   return client.delete(`/erp/workCenter/${ids}`);
 }
+
+export function getWorkshopCapacity() {
+  return client.get('/erp/workCenter/workshopCapacity');
+}

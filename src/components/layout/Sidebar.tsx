@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronDown,
@@ -22,11 +22,13 @@ interface NavItem {
   key: string;
   label: string;
   icon: any;
+  hint?: string;
   children?: Array<{ key: string; label: string; path: string }>;
 }
 
 export default function Sidebar() {
   const { t } = useTranslation();
+  const location = useLocation();
   const collapsed = useAppStore((state) => state.sidebarCollapsed);
   const toggle = useAppStore((state) => state.toggleSidebar);
 
@@ -35,87 +37,126 @@ export default function Sidebar() {
       key: 'dashboard',
       label: t('nav.dashboard'),
       icon: LayoutDashboard,
+      hint: '总览 / 快速入口',
       children: [{ key: 'dashboardWorkbench', label: t('nav.dashboardWorkbench'), path: '/dashboard' }],
     },
     {
-      key: 'sales',
-      label: t('nav.sales'),
+      key: 'orderFlow',
+      label: '1. 销售与客户',
       icon: ShoppingCart,
+      hint: '接单 / 打样 / 客户',
       children: [
         { key: 'salesOrder', label: t('nav.salesOrder'), path: '/sales/order' },
-        { key: 'customer', label: t('nav.customer'), path: '/customer' },
-        { key: 'supplier', label: t('nav.supplier'), path: '/supplier' },
         { key: 'style', label: t('nav.style'), path: '/style' },
+        { key: 'customer', label: t('nav.customer'), path: '/customer' },
+        { key: 'corpContacts', label: t('nav.corpContacts'), path: '/customer/contacts' },
       ],
     },
     {
-      key: 'production',
-      label: t('nav.production'),
+      key: 'techFlow',
+      label: '2. 技术与BOM',
       icon: Factory,
+      hint: '技术单 / BOM / 路线',
       children: [
-        { key: 'jobProcess', label: t('nav.jobProcess'), path: '/production/job-process' },
-        { key: 'kanban', label: t('nav.kanban'), path: '/production/kanban' },
-        { key: 'styleProgress', label: t('nav.styleProgress'), path: '/production/style-progress' },
-        { key: 'plan', label: t('nav.plan'), path: '/production/plan' },
-        { key: 'job', label: t('nav.job'), path: '/production/job' },
+        { key: 'proofingNotice', label: t('nav.proofingNotice'), path: '/sales/proofing-notice' },
+        { key: 'sampleTech', label: t('nav.sampleTech'), path: '/sales/tech' },
+        { key: 'notice', label: t('nav.notice'), path: '/production/notice' },
+        { key: 'bom', label: t('nav.bom'), path: '/material/bom' },
+        { key: 'bomSubstitute', label: '替代料申请', path: '/material/bom-substitute' },
         { key: 'processDef', label: t('nav.processDef'), path: '/production/process-def' },
         { key: 'process', label: t('nav.process'), path: '/production/process' },
-        { key: 'notice', label: t('nav.notice'), path: '/production/notice' },
-        { key: 'gantt', label: t('nav.gantt'), path: '/production/gantt' },
-        { key: 'workCenter', label: t('nav.workCenter'), path: '/production/work-center' },
+        { key: 'processRouteItem', label: t('nav.processRouteItem'), path: '/production/process-route-item' },
+        { key: 'processLossMatrix', label: t('nav.processLossMatrix'), path: '/masterdata/process-loss-matrix' },
       ],
     },
     {
-      key: 'material',
-      label: t('nav.material'),
-      icon: Package,
+      key: 'supplyFlow',
+      label: '3. 采购与供应',
+      icon: Truck,
+      hint: '主数据 / 采购 / 到料',
       children: [
         { key: 'mainMaterial', label: t('nav.mainMaterial'), path: '/material/main' },
         { key: 'auxiliaryMaterial', label: t('nav.auxiliaryMaterial'), path: '/material/auxiliary' },
-        { key: 'bom', label: t('nav.bom'), path: '/material/bom' },
-      ],
-    },
-    {
-      key: 'inventory',
-      label: t('nav.inventory'),
-      icon: Truck,
-      children: [
-        { key: 'stockIn', label: t('nav.stockIn'), path: '/inventory/stock-in' },
-        { key: 'stockOut', label: t('nav.stockOut'), path: '/inventory/stock-out' },
-        { key: 'inventoryList', label: t('nav.inventoryList'), path: '/inventory/list' },
-        { key: 'shipment', label: t('nav.shipment'), path: '/inventory/shipment' },
-        { key: 'warehouse', label: t('nav.warehouse'), path: '/warehouse' },
-        { key: 'warehouseLocation', label: t('nav.warehouseLocation'), path: '/warehouse/location' },
-      ],
-    },
-    {
-      key: 'purchase',
-      label: t('nav.purchase'),
-      icon: Truck,
-      children: [
+        { key: 'materialSku', label: t('nav.materialSku'), path: '/masterdata/material-sku' },
+        { key: 'standardColor', label: t('nav.standardColor'), path: '/masterdata/standard-color' },
+        { key: 'unitConversion', label: t('nav.unitConversion'), path: '/masterdata/unit-conversion' },
         { key: 'purchaseOrder', label: t('nav.purchaseOrder'), path: '/purchase' },
-        { key: 'outsource', label: t('nav.outsource'), path: '/outsource' },
+        { key: 'supplier', label: t('nav.supplier'), path: '/supplier' },
       ],
     },
     {
-      key: 'quality',
-      label: t('nav.quality'),
+      key: 'productionFlow',
+      label: '4. 生产与排期',
+      icon: Factory,
+      hint: '计划 / 外协 / 现场',
+      children: [
+        { key: 'plan', label: t('nav.plan'), path: '/production/plan' },
+        { key: 'changeOrder', label: '变更单', path: '/change/order' },
+        { key: 'planClothes', label: t('nav.planClothes'), path: '/production/plan-clothes' },
+        { key: 'planMaterial', label: t('nav.planMaterial'), path: '/production/plan-material' },
+        { key: 'gantt', label: t('nav.gantt'), path: '/production/gantt' },
+        { key: 'workCenter', label: t('nav.workCenter'), path: '/production/work-center' },
+        { key: 'workshopCapacity', label: t('nav.workshopCapacity'), path: '/production/workshop-capacity' },
+        { key: 'job', label: t('nav.job'), path: '/production/job' },
+        { key: 'teamTaskPool', label: '班组任务池', path: '/production/team-task-pool' },
+        { key: 'employeeDispatch', label: '员工派工', path: '/production/employee-dispatch' },
+        { key: 'wipLedger', label: '在制台账', path: '/production/wip-ledger' },
+        { key: 'outsource', label: t('nav.outsource'), path: '/outsource' },
+        { key: 'kanban', label: t('nav.kanban'), path: '/production/kanban' },
+        { key: 'jobProcess', label: t('nav.jobProcess'), path: '/production/job-process' },
+        { key: 'reportLog', label: t('nav.reportLog'), path: '/production/report-log' },
+        { key: 'styleProgress', label: t('nav.styleProgress'), path: '/production/style-progress' },
+      ],
+    },
+    {
+      key: 'qualityFlow',
+      label: '5. 质量与放行',
       icon: ClipboardCheck,
+      hint: '检验 / 缺陷 / 放行',
       children: [
         { key: 'qualityCheck', label: t('nav.qualityCheck'), path: '/quality' },
         { key: 'qualityInspection', label: t('nav.qualityRelease'), path: '/quality/inspection' },
         { key: 'inspectionBooking', label: t('nav.inspectionBooking'), path: '/quality/inspection-booking' },
         { key: 'japanRelease', label: t('nav.japanRelease'), path: '/quality/japan-release' },
+        { key: 'defect', label: t('nav.defect'), path: '/quality/defect' },
+        { key: 'qcDefect', label: t('nav.qcDefect'), path: '/quality/qc-defect' },
         { key: 'productTrace', label: t('nav.productTrace'), path: '/quality/product-trace' },
+        { key: 'check', label: t('nav.check'), path: '/quality/check' },
       ],
     },
     {
-      key: 'finance',
-      label: t('nav.finance'),
-      icon: DollarSign,
+      key: 'warehouseFlow',
+      label: '6. 仓储与出货',
+      icon: Package,
+      hint: '入库 / 出库 / 出货',
       children: [
+        { key: 'stockIn', label: t('nav.stockIn'), path: '/inventory/stock-in' },
+        { key: 'stockOut', label: t('nav.stockOut'), path: '/inventory/stock-out' },
+        { key: 'shipment', label: t('nav.shipment'), path: '/inventory/shipment' },
+        { key: 'materialBatch', label: t('nav.materialBatch'), path: '/inventory/material-batch' },
+        { key: 'materialConsume', label: t('nav.materialConsume'), path: '/inventory/material-consume' },
+        { key: 'productSerial', label: t('nav.productSerial'), path: '/inventory/product-serial' },
+        { key: 'stockLog', label: t('nav.stockLog'), path: '/inventory/stock-log' },
+        { key: 'inventoryList', label: t('nav.inventoryList'), path: '/inventory/list' },
+        { key: 'warehouse', label: t('nav.warehouse'), path: '/warehouse' },
+        { key: 'warehouseLocation', label: t('nav.warehouseLocation'), path: '/warehouse/location' },
+        { key: 'warehouseArea', label: t('nav.warehouseArea'), path: '/warehouse/warehouse-area' },
+        { key: 'materialBalance', label: '物料平衡', path: '/production/material-balance' },
+        { key: 'materialReturn', label: '退库管理', path: '/production/material-return' },
+      ],
+    },
+    {
+      key: 'financeFlow',
+      label: '7. 财务与结算',
+      icon: DollarSign,
+      hint: '成本 / 发票 / 工资',
+      children: [
+        { key: 'processPrice', label: t('nav.processPrice'), path: '/masterdata/process-price' },
+        { key: 'costSummary', label: t('nav.costSummary'), path: '/finance/cost-summary' },
         { key: 'piecewage', label: t('nav.piecewage'), path: '/piecewage' },
+        { key: 'piecewageDetail', label: t('nav.piecewageDetail'), path: '/piecewage/detail' },
         { key: 'invoice', label: t('nav.invoice'), path: '/finance/invoice' },
+        { key: 'corpInvoice', label: t('nav.corpInvoice'), path: '/finance/corp-invoice' },
       ],
     },
     {
@@ -133,7 +174,12 @@ export default function Sidebar() {
         { key: 'systemRole', label: t('nav.systemRole'), path: '/system/role' },
         { key: 'systemDict', label: t('nav.systemDict'), path: '/system/dict' },
         { key: 'systemOrg', label: t('nav.systemOrg'), path: '/system/org' },
+        { key: 'companyContextMapping', label: t('nav.companyContextMapping'), path: '/system/company-context' },
         { key: 'systemApprovalLog', label: t('nav.approvalLog'), path: '/system/approvallog' },
+        { key: 'overview', label: t('nav.overview'), path: '/system/overview' },
+        { key: 'dataImport', label: t('nav.dataImport'), path: '/system/data-import' },
+        { key: 'customerTemplate', label: t('nav.customerTemplate'), path: '/customer/customer-template' },
+        { key: 'report', label: t('nav.report'), path: '/report' },
         { key: 'abnormal', label: t('nav.abnormal'), path: '/biz/abnormal' },
       ],
     },
@@ -175,7 +221,10 @@ export default function Sidebar() {
               <group.icon size={18} aria-hidden="true" />
               {!collapsed && (
                 <>
-                  <span className="flex-1 text-left">{group.label}</span>
+                  <div className="flex flex-1 flex-col text-left">
+                    <span>{group.label}</span>
+                    {group.hint ? <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{group.hint}</span> : null}
+                  </div>
                   <ChevronDown
                     size={14}
                     aria-hidden="true"
@@ -192,20 +241,24 @@ export default function Sidebar() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  {group.children.map((item) => (
+                  {group.children.map((item) => {
+                    const isExactActive = location.pathname === item.path;
+                    return (
                     <NavLink
                       key={item.path}
                       to={item.path}
                       role="menuitem"
-                      className={({ isActive }) => (
+                      end
+                      className={() => (
                         `block py-2 pl-12 pr-4 text-sm transition-colors ${
-                          isActive ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                          isExactActive ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                         }`
                       )}
                     >
                       {item.label}
                     </NavLink>
-                  ))}
+                    );
+                  })}
                 </motion.div>
               )}
             </AnimatePresence>
