@@ -154,6 +154,7 @@ export default function Sidebar() {
       children: [
         { key: 'processPrice', label: t('nav.processPrice'), path: '/masterdata/process-price' },
         { key: 'costSummary', label: t('nav.costSummary'), path: '/finance/cost-summary' },
+        { key: 'costVariance', label: t('nav.costVariance'), path: '/finance/cost-variance' },
         { key: 'piecewage', label: t('nav.piecewage'), path: '/piecewage' },
         { key: 'piecewageDetail', label: t('nav.piecewageDetail'), path: '/piecewage/detail' },
         { key: 'invoice', label: t('nav.invoice'), path: '/finance/invoice' },

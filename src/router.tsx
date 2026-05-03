@@ -64,6 +64,7 @@ const ControlPlanPage = lazy(() => import('@/pages/quality/control-plan/index'))
 const DefectPage = lazy(() => import('@/pages/quality/defect/index'));
 const QcDefectPage = lazy(() => import('@/pages/quality/qc-defect/index'));
 const CostSummaryPage = lazy(() => import('@/pages/finance/cost-summary/index'));
+const CostVariancePage = lazy(() => import('@/pages/finance/cost-variance/index'));
 const ChannelSettlementPage = lazy(() => import('@/pages/finance/channel-settlement/index'));
 const ChannelRefundPage = lazy(() => import('@/pages/finance/channel-refund/index'));
 const MaterialConsumePage = lazy(() => import('@/pages/inventory/material-consume/index'));
@@ -206,6 +207,7 @@ export const router = createBrowserRouter([
       {path: 'finance/invoice', element: lazyPage(<InvoicePage />)},
       {path: 'finance/finInvoice', element: lazyPage(<InvoicePage />)},
       {path: 'finance/cost-summary', element: lazyPage(<CostSummaryPage />)},
+      {path: 'finance/cost-variance', element: lazyPage(<CostVariancePage />)},
       {path: 'finance/corp-invoice', element: lazyPage(<CorpInvoicePage />)},
       {path: 'finance/channel-settlement', element: lazyPage(<ChannelSettlementPage />)},
       {path: 'finance/channel-refund', element: lazyPage(<ChannelRefundPage />)},

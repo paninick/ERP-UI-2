@@ -54,6 +54,8 @@ const routeTitles: Array<[string, string]> = [
   ['/piecewage', '计件工资'],
   ['/finance/invoice', '发票管理'],
   ['/finance/finInvoice', '财务发票'],
+  ['/finance/cost-variance', '工单成本偏差'],
+  ['/finance/cost-summary', '成本汇总'],
   ['/employee', '员工管理'],
   ['/system/dict-data/', '字典数据'],
   ['/system/dict', '字典管理'],
