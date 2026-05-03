@@ -158,6 +158,8 @@ export default function Sidebar() {
         { key: 'piecewageDetail', label: t('nav.piecewageDetail'), path: '/piecewage/detail' },
         { key: 'invoice', label: t('nav.invoice'), path: '/finance/invoice' },
         { key: 'corpInvoice', label: t('nav.corpInvoice'), path: '/finance/corp-invoice' },
+        { key: 'channelSettlement', label: t('nav.channelSettlement'), path: '/finance/channel-settlement' },
+        { key: 'channelRefund', label: t('nav.channelRefund'), path: '/finance/channel-refund' },
       ],
     },
     {
