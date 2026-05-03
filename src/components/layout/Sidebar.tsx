@@ -121,6 +121,7 @@ export default function Sidebar() {
         { key: 'defect', label: t('nav.defect'), path: '/quality/defect' },
         { key: 'qcDefect', label: t('nav.qcDefect'), path: '/quality/qc-defect' },
         { key: 'productTrace', label: t('nav.productTrace'), path: '/quality/product-trace' },
+        { key: 'controlPlan', label: t('nav.controlPlan'), path: '/quality/control-plan' },
         { key: 'check', label: t('nav.check'), path: '/quality/check' },
       ],
     },

@@ -183,6 +183,7 @@ export const resources = {
         processRouteItem: '工艺路线明细',
         salesItem: '销售明细',
         warehouseArea: '仓区',
+        controlPlan: '控制计划',
         check: '质检判定',
         dataImport: '数据导入',
         report: '综合报表',
@@ -2862,6 +2863,10 @@ export const resources = {
         stockLog: '在庫ログ',
         overview: 'システム概要',
         corpInvoice: '会社請求書',
+        controlPlan: '管理計画書',
+        check: '判定',
+        dataImport: 'データ取込',
+        report: '総合レポート',
       },
       page: {
         sales: {

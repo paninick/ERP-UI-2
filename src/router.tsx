@@ -60,6 +60,7 @@ const WorkCenterPage = lazy(() => import('@/pages/production/work-center/index')
 const WorkshopCapacityPage = lazy(() => import('@/pages/production/workshop-capacity/index'));
 const MaterialBatchPage = lazy(() => import('@/pages/inventory/material-batch/index'));
 const ReportLogPage = lazy(() => import('@/pages/production/report-log/index'));
+const ControlPlanPage = lazy(() => import('@/pages/quality/control-plan/index'));
 const DefectPage = lazy(() => import('@/pages/quality/defect/index'));
 const QcDefectPage = lazy(() => import('@/pages/quality/qc-defect/index'));
 const CostSummaryPage = lazy(() => import('@/pages/finance/cost-summary/index'));
@@ -232,6 +233,7 @@ export const router = createBrowserRouter([
       {path: 'production/plan-material', element: lazyPage(<PlanMaterialPage />)},
       {path: 'production/process-route-item', element: lazyPage(<ProcessRouteItemPage />)},
       {path: 'sales/sales-item', element: lazyPage(<SalesItemPage />)},
+      {path: 'quality/control-plan', element: lazyPage(<ControlPlanPage />)},
       {path: 'quality/check', element: lazyPage(<CheckPage />)},
       {path: 'system/data-import', element: lazyPage(<DataImportPage />)},
       {path: 'report', element: lazyPage(<ReportPage />)},
