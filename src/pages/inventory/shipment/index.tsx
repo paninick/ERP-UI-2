@@ -1,17 +1,25 @@
 import { useTranslation } from 'react-i18next';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import CrudPage from '@/components/ui/CrudPage';
 import GenericForm from '@/components/ui/GenericForm';
 import { confirm } from '@/components/ui/ConfirmDialog';
 import { toast } from '@/components/ui/Toast';
+import DetailTab from './DetailTab';
+import BoxTab from './BoxTab';
+import TrackingTab from './TrackingTab';
 import * as api from '@/api/shipment';
+
+const TABS = ['details', 'boxes', 'tracking'] as const;
 
 const pageApi = { list: api.listShipment, get: api.getShipment, add: api.addShipment, update: api.updateShipment, remove: api.delShipment };
 
 export default function ShipmentPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+  const [detailShipmentId, setDetailShipmentId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('details');
+  const [detailVisible, setDetailVisible] = useState(false);
   const shipmentStatusMap = useMemo(
     () => ({
       '0': t('shipment.statusDraft', '草稿'),
@@ -81,9 +89,21 @@ export default function ShipmentPage() {
   const extraActions = (record: any) => {
     const released = String(record?.releaseStatus ?? '0') === '1';
     return (
-      <button
-        onClick={async (event) => {
-          event.stopPropagation();
+      <>
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            setDetailShipmentId(record.id);
+            setActiveTab('details');
+            setDetailVisible(true);
+          }}
+          className="rounded px-2 py-2 text-xs text-indigo-600 hover:bg-indigo-50"
+        >
+          {t('common.detail', '详情')}
+        </button>
+        <button
+          onClick={async (event) => {
+            event.stopPropagation();
           const confirmed = await confirm(
             released
               ? t('shipment.cancelReleaseConfirm', '确认撤回该出货单放行状态吗？')
@@ -109,8 +129,36 @@ export default function ShipmentPage() {
       >
         {released ? t('shipment.cancelRelease', '撤回放行') : t('shipment.releaseAction', '放行')}
       </button>
+      </>
     );
   };
 
-  return <CrudPage title={t('shipment.title')} api={pageApi} columns={columns} searchFields={searchFields} FormComponent={(props) => <GenericForm {...props} fields={formFields} />} extraActions={extraActions} initialSearchParams={initialSearchParams} />;
+  return (
+    <>
+      <CrudPage title={t('shipment.title')} api={pageApi} columns={columns} searchFields={searchFields} FormComponent={(props) => <GenericForm {...props} fields={formFields} />} extraActions={extraActions} initialSearchParams={initialSearchParams} />
+
+      {detailVisible && detailShipmentId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setDetailVisible(false)}>
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-medium">{t('shipment.detail', '出货单详情')} #{detailShipmentId}</h3>
+              <button onClick={() => setDetailVisible(false)} className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100">{t('common.close', '关闭')}</button>
+            </div>
+
+            <div className="mb-3 flex gap-1 border-b">
+              {TABS.map((tab) => (
+                <button key={tab} onClick={() => setActiveTab(tab)} className={`rounded-t px-3 py-1 text-xs ${activeTab === tab ? 'border-b-2 border-blue-500 font-medium text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}>
+                  {t(`shipment.tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`, tab === 'details' ? '出货明细' : tab === 'boxes' ? '箱号管理' : '物流跟踪')}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === 'details' && <DetailTab shipmentId={detailShipmentId} />}
+            {activeTab === 'boxes' && <BoxTab shipmentId={detailShipmentId} />}
+            {activeTab === 'tracking' && <TrackingTab shipmentId={detailShipmentId} />}
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
