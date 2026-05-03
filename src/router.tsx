@@ -4,6 +4,9 @@ import MainLayout from '@/components/layout/MainLayout';
 import Login from '@/pages/auth/Login';
 
 const Dashboard = lazy(() => import('@/pages/dashboard/index'));
+const DashboardInsightPage = lazy(() => import('@/pages/dashboard/insight/index'));
+const SupplierRatingPage = lazy(() => import('@/pages/dashboard/supplier-rating/index'));
+const DashboardThresholdPage = lazy(() => import('@/pages/dashboard/threshold/index'));
 const SalesOrderPage = lazy(() => import('@/pages/sales/order/index'));
 const SalesOrderDetailPage = lazy(() => import('@/pages/sales/order/detail'));
 const SalesOrderPrintPage = lazy(() => import('@/pages/sales/order/print'));
@@ -136,6 +139,9 @@ export const router = createBrowserRouter([
     children: [
       {index: true, element: <Navigate to="/dashboard" replace />},
       {path: 'dashboard', element: lazyPage(<Dashboard />)},
+      {path: 'dashboard/insight', element: lazyPage(<DashboardInsightPage />)},
+      {path: 'dashboard/supplier-rating', element: lazyPage(<SupplierRatingPage />)},
+      {path: 'dashboard/threshold', element: lazyPage(<DashboardThresholdPage />)},
 
       {path: 'sales/order', element: lazyPage(<SalesOrderPage />)},
       {path: 'sales/order/:id', element: lazyPage(<SalesOrderDetailPage />)},

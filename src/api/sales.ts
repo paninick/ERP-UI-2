@@ -4,6 +4,10 @@ export function listSalesOrder(params: any) {
   return client.get('/erp/sales/order/list', { params });
 }
 
+export function nextSalesNo() {
+  return client.get('/erp/sales/order/nextNo');
+}
+
 export function getSalesOrder(id: number) {
   return client.get(`/erp/sales/order/${id}`);
 }

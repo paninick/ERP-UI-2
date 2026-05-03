@@ -38,7 +38,12 @@ export default function Sidebar() {
       label: t('nav.dashboard'),
       icon: LayoutDashboard,
       hint: '总览 / 快速入口',
-      children: [{ key: 'dashboardWorkbench', label: t('nav.dashboardWorkbench'), path: '/dashboard' }],
+      children: [
+        { key: 'dashboardWorkbench', label: t('nav.dashboardWorkbench'), path: '/dashboard' },
+        { key: 'dashboardInsight', label: t('nav.dashboardInsight'), path: '/dashboard/insight' },
+        { key: 'supplierRating', label: t('nav.supplierRating'), path: '/dashboard/supplier-rating' },
+        { key: 'dashboardThreshold', label: t('nav.dashboardThreshold'), path: '/dashboard/threshold' },
+      ],
     },
     {
       key: 'orderFlow',

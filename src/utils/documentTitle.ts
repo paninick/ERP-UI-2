@@ -2,6 +2,9 @@ const APP_TITLE = 'ERP 系统';
 const APP_SUBTITLE = '针织服装数字化管理平台';
 
 const routeTitles: Array<[string, string]> = [
+  ['/dashboard/insight', '经营驾驶舱'],
+  ['/dashboard/supplier-rating', '供应商评级'],
+  ['/dashboard/threshold', '阈值规则'],
   ['/production/style-progress', '款号进度视图'],
   ['/production/product-trace', '产品全链路追溯'],
   ['/quality/product-trace', '产品全链路追溯'],

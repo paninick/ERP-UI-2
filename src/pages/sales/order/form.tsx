@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isApprovalLocked } from '@/utils/approval';
+import { unwrapAjaxResultData } from '@/utils/ajaxResult';
+import * as salesApi from '@/api/sales';
 
 interface SalesOrderFormProps {
   initialValues?: any;
@@ -42,7 +45,7 @@ const EMPTY_FORM: SalesOrderFormState = {
   styleCategory: '',
   sampleNo: '',
   salesName: '',
-  salesDate: '',
+  salesDate: new Date().toISOString().slice(0, 10),
   dueDate: '',
   quantity: '',
   amount: '',
@@ -59,9 +62,7 @@ const EMPTY_FORM: SalesOrderFormState = {
 };
 
 function normalizeDate(value: any) {
-  if (!value) {
-    return '';
-  }
+  if (!value) return '';
   return String(value).slice(0, 10);
 }
 
@@ -69,6 +70,8 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
   const { t } = useTranslation();
   const [form, setForm] = useState<SalesOrderFormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const locked = isApprovalLocked(initialValues?.auditStatus);
 
   useEffect(() => {
@@ -99,6 +102,11 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
       });
       return;
     }
+    // New order: pre-generate sales number
+    salesApi.nextSalesNo().then((res: any) => {
+      const no = unwrapAjaxResultData<string>(res) || '';
+      setForm((prev) => ({ ...prev, salesNo: no }));
+    });
     setForm(EMPTY_FORM);
   }, [initialValues]);
 
@@ -132,11 +140,13 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
     name,
     type = 'text',
     placeholder,
+    disabled,
   }: {
     label: string;
     name: keyof SalesOrderFormState;
     type?: string;
     placeholder?: string;
+    disabled?: boolean;
   }) => (
     <label className="space-y-2">
       <span className={labelClassName}>{label}</span>
@@ -145,7 +155,7 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
         type={type}
         value={form[name]}
         onChange={(event) => setField(name, event.target.value)}
-        disabled={locked}
+        disabled={locked || disabled}
         placeholder={placeholder}
         className={inputClassName}
       />
@@ -180,6 +190,33 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
     </label>
   );
 
+  const CollapsibleSection = ({
+    open,
+    label,
+    onToggle,
+    children,
+  }: {
+    open: boolean;
+    label: string;
+    onToggle: () => void;
+    children: React.ReactNode;
+  }) => (
+    <div className="rounded-2xl border border-slate-200">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-2xl"
+      >
+        <span>{label}</span>
+        <ChevronDown
+          size={16}
+          className={`transition-transform ${open ? 'rotate-0' : '-rotate-90'}`}
+        />
+      </button>
+      {open && <div className="border-t border-slate-200 p-4 space-y-4">{children}</div>}
+    </div>
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {locked && (
@@ -195,46 +232,55 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
         </p>
       </div>
 
+      {/* Core fields — always visible */}
       <section className="space-y-3">
-        <div>
-          <h4 className="text-sm font-semibold text-slate-900">{t('page.sales.form.sections.orderSource')}</h4>
-          <p className="mt-1 text-xs text-slate-500">{t('page.sales.form.sectionHints.orderSource')}</p>
-        </div>
+        <h4 className="text-sm font-semibold text-slate-900">{t('page.sales.form.sections.coreFields')}</h4>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label={t('page.sales.columns.salesNo')} name="salesNo" placeholder={t('page.sales.placeholders.salesNo')} />
-          <Field label={t('page.sales.columns.customerName')} name="customerName" placeholder={t('page.sales.placeholders.customerName')} />
-          <Field label={t('page.sales.form.fields.bulkOrderNo')} name="bulkOrderNo" />
-          <Field label={t('page.sales.form.fields.sampleStyleNo')} name="sampleStyleNo" />
-          <Field label={t('page.sales.columns.styleCode')} name="styleCode" />
-          <Field label={t('page.sales.form.fields.styleCategory')} name="styleCategory" />
-          <Field label={t('page.sales.form.fields.sampleNo')} name="sampleNo" />
-          <Field label={t('page.sales.form.fields.salesName')} name="salesName" />
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div>
-          <h4 className="text-sm font-semibold text-slate-900">{t('page.sales.form.sections.deliveryCommercial')}</h4>
-          <p className="mt-1 text-xs text-slate-500">{t('page.sales.form.sectionHints.deliveryCommercial')}</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label={t('page.sales.columns.orderDate')} name="salesDate" type="date" />
-          <Field label={t('page.sales.columns.deliveryDate')} name="dueDate" type="date" />
-          <Field label={t('page.sales.columns.quantity')} name="quantity" type="number" />
-          <Field label={t('page.sales.columns.amount')} name="amount" type="number" />
-          <Field label={t('page.sales.form.fields.japanOrderNo')} name="japanOrderNo" />
-          <Field label={t('page.sales.form.fields.tradeTerms')} name="tradeTerms" />
-          <Field label={t('page.sales.form.fields.exportDeclareType')} name="exportDeclareType" />
-          <Field label={t('page.sales.form.fields.orderStatus')} name="orderStatus" />
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div>
-          <h4 className="text-sm font-semibold text-slate-900">{t('page.sales.form.sections.productionRisk')}</h4>
-          <p className="mt-1 text-xs text-slate-500">{t('page.sales.form.sectionHints.productionRisk')}</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
+          <Field
+            label={t('page.sales.columns.salesNo')}
+            name="salesNo"
+            disabled
+          />
+          <Field
+            label={t('page.sales.columns.customerName')}
+            name="customerName"
+            placeholder={t('page.sales.placeholders.customerName')}
+          />
+          <Field
+            label={t('page.sales.columns.styleCode')}
+            name="styleCode"
+            placeholder={t('page.sales.placeholders.styleCode')}
+          />
+          <Field
+            label={t('page.sales.form.fields.bulkOrderNo')}
+            name="bulkOrderNo"
+          />
+          <Field
+            label={t('page.sales.form.fields.salesName')}
+            name="salesName"
+          />
+          <Field
+            label={t('page.sales.columns.orderDate')}
+            name="salesDate"
+            type="date"
+          />
+          <Field
+            label={t('page.sales.columns.deliveryDate')}
+            name="dueDate"
+            type="date"
+          />
+          <Field
+            label={t('page.sales.columns.quantity')}
+            name="quantity"
+            type="number"
+            placeholder="0"
+          />
+          <Field
+            label={t('page.sales.columns.amount')}
+            name="amount"
+            type="number"
+            placeholder="0.00"
+          />
           <SelectField
             label={t('page.sales.form.fields.salesType')}
             name="salesType"
@@ -244,6 +290,23 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
               { value: 'DEVELOP', label: t('page.sales.form.options.salesType.develop') },
             ]}
           />
+        </div>
+      </section>
+
+      {/* Advanced business info — collapsible */}
+      <CollapsibleSection
+        open={advancedOpen}
+        label={t(advancedOpen ? 'page.sales.form.hideAdvanced' : 'page.sales.form.showAdvanced')}
+        onToggle={() => setAdvancedOpen(!advancedOpen)}
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={t('page.sales.form.fields.sampleStyleNo')} name="sampleStyleNo" />
+          <Field label={t('page.sales.form.fields.styleCategory')} name="styleCategory" />
+          <Field label={t('page.sales.form.fields.sampleNo')} name="sampleNo" />
+          <Field label={t('page.sales.form.fields.japanOrderNo')} name="japanOrderNo" />
+          <Field label={t('page.sales.form.fields.tradeTerms')} name="tradeTerms" />
+          <Field label={t('page.sales.form.fields.exportDeclareType')} name="exportDeclareType" />
+          <Field label={t('page.sales.form.fields.orderStatus')} name="orderStatus" />
           <SelectField
             label={t('page.sales.form.fields.colorConfirmed')}
             name="colorConfirmed"
@@ -262,13 +325,14 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
             ]}
           />
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <section className="space-y-3">
-        <div>
-          <h4 className="text-sm font-semibold text-slate-900">{t('page.sales.form.sections.customerNotes')}</h4>
-          <p className="mt-1 text-xs text-slate-500">{t('page.sales.form.sectionHints.customerNotes')}</p>
-        </div>
+      {/* Notes & remarks — collapsible */}
+      <CollapsibleSection
+        open={notesOpen}
+        label={t(notesOpen ? 'page.sales.form.hideNotes' : 'page.sales.form.showNotes')}
+        onToggle={() => setNotesOpen(!notesOpen)}
+      >
         <div className="grid gap-4">
           <label className="space-y-2">
             <span className={labelClassName}>{t('page.sales.form.fields.bulkOpinion')}</span>
@@ -292,7 +356,7 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
             />
           </label>
         </div>
-      </section>
+      </CollapsibleSection>
 
       <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
         <button
