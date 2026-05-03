@@ -330,10 +330,7 @@ export default function BomDetailPage() {
     try {
       const payload = {
         ...(record || {}),
-        customerName: draft.baseInfo.customerName,
         styleCode: draft.baseInfo.styleCode,
-        sampleType: draft.baseInfo.sampleType,
-        dueDate: draft.baseInfo.dueDate,
         salesName: draft.baseInfo.salesName,
         detailDraft: draft,
       };
@@ -377,7 +374,7 @@ export default function BomDetailPage() {
         <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
           <div>
             <div className="inline-flex rounded-lg bg-emerald-50 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-emerald-700">
-              样衣技术冻结
+              BOM 技术冻结
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
@@ -392,7 +389,7 @@ export default function BomDetailPage() {
                 {approvalTag.label}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                打样编号 {renderText(record?.sampleNo)}
+                款号 {renderText(record?.styleCode)}
               </span>
             </div>
             <h1 className="mt-4 text-2xl font-semibold text-slate-900">{t('page.bomDetail.title')}</h1>
@@ -410,11 +407,11 @@ export default function BomDetailPage() {
           <div className="grid gap-3">
             {[
               {
-                title: '回打样总览',
-                detail: '先确认这份样衣 BOM 来自哪张打样通知，以及样衣要求和附件是否一致。',
+                title: '技术档案总览',
+                detail: '查看这份 BOM 对应款式的技术档案，包括工艺路线、物料清单和审批历史。',
                 action: () =>
                   navigate(
-                    `/sales/proofing-notice?styleCode=${encodeURIComponent(record?.styleCode || '')}&customerName=${encodeURIComponent(record?.customerName || '')}`,
+                    `/material/bom-substitute?bomId=${encodeURIComponent(String(record?.id || ''))}&styleCode=${encodeURIComponent(record?.styleCode || '')}`,
                   ),
               },
               {
@@ -472,18 +469,13 @@ export default function BomDetailPage() {
         <div className="space-y-6">
           <SectionCard title="来源与基础信息" hint="先把这份 BOM 属于谁、来自哪张样、当前状态和交期看清楚。">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <GridField label="打样编号" value={renderText(record?.sampleNo)} />
-              <GridField label="客户" value={renderText(record?.customerName || draft.baseInfo.customerName)} />
-              <GridField label="打样款号" value={renderText(record?.styleCode || draft.baseInfo.styleCode)} />
+              <GridField label="款号" value={renderText(record?.styleCode || draft.baseInfo.styleCode)} />
               <GridField label="大货款号" value={renderText(record?.bulkOrderNo)} />
-              <GridField label="样品款式" value={renderText(record?.styleType || draft.baseInfo.sampleType)} />
-              <GridField label="样品种类" value={renderText(record?.sampleCategoryType)} />
               <GridField label="业务员" value={renderText(record?.salesName || draft.baseInfo.salesName)} />
-              <GridField label="要求交期" value={renderDate(record?.dueDate || draft.baseInfo.dueDate)} />
-              <GridField label="紧急程度" value={renderText(record?.emergencyType)} />
-              <GridField label="进行状态" value={renderText(record?.progressStatus)} />
-              <GridField label="审批人" value={renderText(record?.auditByNickName || record?.auditBy)} />
-              <GridField label="审批时间" value={renderDate(record?.auditTime)} />
+              <GridField label="工艺路线ID" value={renderText(record?.routeId)} />
+              <GridField label="工厂ID" value={renderText(record?.factoryId)} />
+              <GridField label="客户" value={renderText(draft.baseInfo.customerName)} />
+              <GridField label="要求交期" value={renderDate(draft.baseInfo.dueDate)} />
             </div>
           </SectionCard>
 
@@ -516,13 +508,12 @@ export default function BomDetailPage() {
             )}
           </SectionCard>
 
-          <SectionCard title={t('page.bomDetail.sections.formInfo')} hint="这里仍然保留当前可编辑的样衣冻结草稿层，方便继续把图纸、制版和责任人补齐。">
+          <SectionCard title={t('page.bomDetail.sections.formInfo')} hint="款号、业务员和技术参数可在此维护，数据将同步到 BOM 主记录。">
             <div className="grid gap-4 lg:grid-cols-4">
               {[
-                'customerName',
                 'styleCode',
-                'sampleType',
                 'salesName',
+                'customerName',
                 'dueDate',
                 'expectDate',
                 'makerName',
@@ -711,33 +702,33 @@ export default function BomDetailPage() {
       )}
 
       {activeTab === 'flow' && (
-        <SectionCard title="流程图" hint="样衣 BOM 的角色是技术冻结，不是最终工艺发放。这个位置要把上下游责任边界讲清楚。">
+        <SectionCard title="流程图" hint="BOM 是技术与材料的枢纽，承接销售订单的技术需求，向下游传递采购备料和生产计划的依据。">
           <div className="grid gap-4 lg:grid-cols-5">
             {[
               {
                 icon: FileStack,
-                title: '打样通知',
-                detail: '业务把样衣需求、图片、附件、交期和颜色尺码要求发下来。',
-              },
-              {
-                icon: Workflow,
-                title: '打样总览',
-                detail: '统一确认这张样目前走到哪一步，有哪些样衣明细和主辅料要求。',
+                title: '销售订单',
+                detail: '业务录入销售订单，指定款号、数量、交期和客户信息。',
               },
               {
                 icon: Boxes,
-                title: '样衣 BOM',
-                detail: '在这里冻结颜色组、主辅料和图纸说明，形成技术与材料依据。',
+                title: 'BOM 技术冻结',
+                detail: '在这里冻结款号对应的主辅料清单，形成采购与成本依据。',
+              },
+              {
+                icon: Workflow,
+                title: '工艺路线',
+                detail: '绑定针织服装标准 18 道工序路线，可微调工序参数。',
               },
               {
                 icon: Factory,
-                title: '大货核版',
-                detail: '样衣确认通过后，再转入大货前的技术确认和问题点收口。',
+                title: '采购备料',
+                detail: 'BOM 审批后进入采购环节，按物料清单备料。',
               },
               {
                 icon: ArrowRight,
-                title: '工艺指示书 / 计划',
-                detail: '最后才继续进入工艺发放和生产计划，不让样衣依据越权替代后续单据。',
+                title: '生产计划',
+                detail: '备料完成后转入生产排期，进入工单拆分和工序流转环节。',
               },
             ].map((item) => (
               <div key={item.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">

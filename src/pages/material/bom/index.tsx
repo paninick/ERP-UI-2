@@ -26,14 +26,13 @@ export default function BomPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [tableKey, setTableKey] = useState(0);
-  const styleType = useDictOptions('erp_sample_style');
   const auditStatus = useDictOptions('erp_sample_audit_status');
 
   const refreshTable = () => setTableKey((prev) => prev + 1);
 
   const handleApproval = async (record: any, action: 'submit' | 'approve' | 'reject') => {
     const actionText = action === 'submit' ? t('common.submit') : action === 'approve' ? t('common.approve') : t('common.reject');
-    const confirmed = await confirm(t('approval.confirmAction', { action: actionText, name: record.sampleNo || record.styleCode || '-' }));
+    const confirmed = await confirm(t('approval.confirmAction', { action: actionText, name: record.styleCode || record.bulkOrderNo || '-' }));
     if (!confirmed) {
       return;
     }
@@ -107,18 +106,8 @@ export default function BomPage() {
         title={t('page.bom.title')}
         api={api}
         columns={[
-          { key: 'sampleNo', title: t('page.bom.columns.sampleNo') },
-          { key: 'customerName', title: t('page.bom.columns.customerName') },
           { key: 'styleCode', title: t('page.bom.columns.styleCode') },
           { key: 'bulkOrderNo', title: t('page.bom.columns.bulkOrderNo') },
-          {
-            key: 'styleType',
-            title: t('page.bom.columns.styleType'),
-            render: (value: string) => {
-              const tag = styleType.toTag(value);
-              return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
-            },
-          },
           {
             key: 'auditStatus',
             title: t('page.bom.columns.auditStatus'),
@@ -127,11 +116,9 @@ export default function BomPage() {
               return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tag.color}`}>{tag.label}</span>;
             },
           },
-          { key: 'dueDate', title: t('page.bom.columns.dueDate') },
           { key: 'salesName', title: t('page.bom.columns.salesName') },
         ]}
         searchFields={[
-          { name: 'sampleNo', label: t('page.bom.columns.sampleNo') },
           { name: 'styleCode', label: t('page.bom.columns.styleCode') },
           {
             name: 'auditStatus',
