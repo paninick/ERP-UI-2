@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -174,6 +174,7 @@ function defaultDraft(record: any): BomDetailDraft {
 export default function BomDetailPage() {
   const { t } = useTranslation();
   const { id = 'new' } = useParams();
+  const [urlSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const currentCompany = useAppStore((state) => state.currentCompany);
   const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`;
@@ -186,6 +187,9 @@ export default function BomDetailPage() {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvedSubstitutes, setApprovedSubstitutes] = useState<BomSubstituteItem[]>([]);
   const [activeTab, setActiveTab] = useState<'form' | 'history' | 'flow'>('form');
+
+  const sourceNoticeId = id === 'new' ? (urlSearchParams.get('noticeId') || '') : '';
+  const sourceSampleNo = id === 'new' ? (urlSearchParams.get('sampleNo') || '') : '';
 
   useEffect(() => {
     let mounted = true;
@@ -201,7 +205,17 @@ export default function BomDetailPage() {
         }
         setRecordMissing(!isNewRecord && !nextRecord);
         setRecord(nextRecord);
-        setDraft(isNewRecord || nextRecord ? readDraft('bom-detail', id, defaultDraft(nextRecord)) : null);
+        const urlPreFill = isNewRecord ? {
+          styleCode: urlSearchParams.get('styleCode') || '',
+          salesName: urlSearchParams.get('salesName') || '',
+          customerName: urlSearchParams.get('customerName') || '',
+          dueDate: urlSearchParams.get('dueDate') || '',
+        } : {};
+        const baseDraft = defaultDraft(nextRecord);
+        if (isNewRecord) {
+          Object.assign(baseDraft.baseInfo, urlPreFill);
+        }
+        setDraft(isNewRecord || nextRecord ? readDraft('bom-detail', id, baseDraft) : null);
         setApprovalLogs([]);
         setApprovedSubstitutes([]);
 
@@ -326,6 +340,10 @@ export default function BomDetailPage() {
     if (!draft) {
       return;
     }
+    if (id === 'new' && !sourceNoticeId) {
+      toast.error('样衣 BOM 必须来自打样通知，请返回 BOM 列表通过「从打样通知新建」入口创建。');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -333,6 +351,7 @@ export default function BomDetailPage() {
         styleCode: draft.baseInfo.styleCode,
         salesName: draft.baseInfo.salesName,
         detailDraft: draft,
+        ...(id === 'new' && sourceNoticeId ? { sourceNoticeId } : {}),
       };
       if (id === 'new') {
         await bomApi.addBom(payload);
@@ -389,8 +408,18 @@ export default function BomDetailPage() {
                 {approvalTag.label}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                款号 {renderText(record?.styleCode)}
+                款号 {renderText(record?.styleCode || draft.baseInfo.styleCode)}
               </span>
+              {sourceSampleNo && (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                  来源打样通知：{sourceSampleNo}
+                </span>
+              )}
+              {id === 'new' && !sourceNoticeId && (
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                  ⚠ 未绑定打样通知来源，保存将被阻止
+                </span>
+              )}
             </div>
             <h1 className="mt-4 text-2xl font-semibold text-slate-900">{t('page.bomDetail.title')}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">

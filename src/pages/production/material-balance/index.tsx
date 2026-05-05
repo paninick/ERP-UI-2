@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import { ArrowRight, Calculator, FileText, ShieldCheck } from 'lucide-react';
 import CrudPage from '@/components/ui/CrudPage';
+import BaseModal from '@/components/ui/BaseModal';
 import { confirm } from '@/components/ui/ConfirmDialog';
 import { toast } from '@/components/ui/Toast';
 import client from '@/api/client';
@@ -23,6 +24,11 @@ const api = {
 
 export default function MaterialBalancePage() {
   const [tableKey, setTableKey] = useState(0);
+
+  // 审批 Modal
+  const [approveTarget, setApproveTarget] = useState<any>(null);
+  const [approveForm, setApproveForm] = useState({ status: '已审批', remark: '' });
+  const [approving, setApproving] = useState(false);
 
   const columns = [
     { key: 'balanceNo', title: '平衡单号' },
@@ -87,19 +93,26 @@ export default function MaterialBalancePage() {
     }
   };
 
-  const handleApprove = async (record: any) => {
-    const status = window.prompt('请输入审批结果：已审批 / 已驳回', '已审批');
-    if (!status) return;
-    const remark = window.prompt('请输入审批备注', record.approvalRemark || '') || '';
-    if (!(await confirm(`确认将 ${record.balanceNo} 审批为 ${status}？`))) return;
+  const handleApprove = (record: any) => {
+    setApproveTarget(record);
+    setApproveForm({ status: '已审批', remark: record.approvalRemark || '' });
+  };
+
+  const handleApproveSubmit = async () => {
+    if (!approveTarget) return;
+    if (!(await confirm(`确认将 ${approveTarget.balanceNo} 审批为 ${approveForm.status}？`))) return;
+    setApproving(true);
     try {
-      await client.post(`/erp/produceMaterialBalance/approve/${record.id}/${encodeURIComponent(status)}`, null, {
-        params: { approvalRemark: remark },
+      await client.post(`/erp/produceMaterialBalance/approve/${approveTarget.id}/${encodeURIComponent(approveForm.status)}`, null, {
+        params: { approvalRemark: approveForm.remark },
       });
       toast.success('审批完成');
+      setApproveTarget(null);
       refreshTable();
     } catch (error: any) {
       toast.error(error.message || '审批失败');
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -180,6 +193,42 @@ export default function MaterialBalancePage() {
           </>
         )}
       />
+
+      {/* 审批 Modal — 替代 window.prompt */}
+      <BaseModal
+        open={!!approveTarget}
+        title={`审批物料平衡：${approveTarget?.balanceNo || ''}`}
+        onClose={() => setApproveTarget(null)}
+      >
+        <div className="space-y-4 p-1">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700">审批结果</label>
+            <select
+              value={approveForm.status}
+              onChange={(e) => setApproveForm((prev) => ({ ...prev, status: e.target.value }))}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            >
+              <option value="已审批">已审批</option>
+              <option value="已驳回">已驳回</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700">审批备注</label>
+            <textarea
+              value={approveForm.remark}
+              onChange={(e) => setApproveForm((prev) => ({ ...prev, remark: e.target.value }))}
+              rows={3}
+              className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setApproveTarget(null)} className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">取消</button>
+            <button type="button" disabled={approving} onClick={handleApproveSubmit} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50">
+              {approving ? '提交中…' : '确认审批'}
+            </button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 }

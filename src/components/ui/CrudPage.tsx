@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useCrud } from '@/hooks/useCrud';
 import { confirm } from './ConfirmDialog';
@@ -8,6 +9,7 @@ import BaseTable from './BaseTable';
 import Pagination from './Pagination';
 import SearchForm, { SearchField } from './SearchForm';
 import { exportToCsv } from '@/utils/exportToCsv';
+import { useAppStore } from '@/stores/appStore';
 
 interface Column {
   key: string;
@@ -45,6 +47,7 @@ interface CrudPageProps {
   isDeleteDisabled?: (record: any) => boolean;
   batchActions?: (selectedRowKeys: string[]) => ReactNode;
   initialSearchParams?: Record<string, string>;
+  emptyState?: ReactNode;
   onSaved?: (record: any, mode: 'add' | 'edit') => void | Promise<void>;
 }
 
@@ -60,9 +63,11 @@ export default function CrudPage({
   isDeleteDisabled,
   batchActions,
   initialSearchParams,
+  emptyState,
   onSaved,
 }: CrudPageProps) {
   const { t } = useTranslation();
+  const uiTheme = useAppStore((state) => state.uiTheme);
   const {
     data,
     loading,
@@ -129,7 +134,7 @@ export default function CrudPage({
       title: t('common.actions'),
       width: '160px',
       render: (_: any, record: any) => (
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {FormComponent && api.update && (
             <button
               onClick={(event) => {
@@ -138,7 +143,13 @@ export default function CrudPage({
                 setModalOpen(true);
               }}
               disabled={Boolean(isEditDisabled?.(record))}
-              className="rounded px-2 py-2 text-xs text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+              className={`rounded-full border px-3 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent ${
+                uiTheme === 'google'
+                  ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  : uiTheme === 'night'
+                    ? 'border-white/10 bg-white/5 text-slate-100 hover:bg-white/8'
+                  : 'border-amber-200/28 bg-amber-50/80 text-amber-700 hover:bg-amber-100'
+              }`}
             >
               {t('common.edit')}
             </button>
@@ -152,7 +163,7 @@ export default function CrudPage({
                 }
               }}
               disabled={Boolean(isDeleteDisabled?.(record))}
-              className="rounded px-2 py-2 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+              className="rounded-full border border-red-200 bg-red-50/80 px-3 py-1.5 text-xs text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent"
             >
               {t('common.delete')}
             </button>
@@ -205,29 +216,62 @@ export default function CrudPage({
   };
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExport}
-            disabled={data.length === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 min-h-[44px]"
-          >
-            <Download size={14} />
-            {t('common.exportCsv')}
-          </button>
-          {FormComponent && api.add && (
-            <button
-              onClick={handleAddNew}
-              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-3 text-sm text-white hover:bg-indigo-700 min-h-[44px]"
+    <div className="space-y-4">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+        className={`overflow-hidden rounded-[28px] p-5 ${
+          uiTheme === 'google'
+            ? 'border border-slate-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08)]'
+            : uiTheme === 'night'
+              ? 'border border-white/8 bg-slate-950/72 shadow-[0_28px_90px_rgba(2,8,18,0.32)] backdrop-blur-2xl'
+            : 'jtech-panel border border-amber-200/18 bg-white/86 shadow-[0_28px_90px_rgba(120,80,20,0.08)]'
+        }`}
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <p className={`text-[11px] uppercase tracking-[0.34em] ${
+              uiTheme === 'google' ? 'text-slate-500' : uiTheme === 'night' ? 'text-slate-400/70' : 'text-amber-700/50'
+            }`}>Business Surface</p>
+            <h2 className={`text-2xl font-semibold tracking-[0.04em] ${uiTheme === 'night' ? 'text-slate-100' : 'text-slate-900'}`}>{title}</h2>
+            <p className={`max-w-2xl text-sm ${uiTheme === 'night' ? 'text-slate-400' : 'text-slate-500'}`}>统一为更轻的业务工作面，保留动作入口，减少字段墙和按钮噪音。</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleExport}
+              disabled={data.length === 0}
+              className={`inline-flex min-h-[42px] items-center gap-1.5 rounded-full border px-4 py-2.5 text-sm transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 ${
+                uiTheme === 'google'
+                  ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  : uiTheme === 'night'
+                    ? 'border-white/10 bg-white/5 text-slate-100 hover:bg-white/8'
+                  : 'border-amber-200/22 bg-white text-slate-700 hover:bg-amber-50'
+              }`}
             >
-              <Plus size={14} />
-              {t('common.add')}
-            </button>
-          )}
+              <Download size={14} />
+              {t('common.exportCsv')}
+            </motion.button>
+            {FormComponent && api.add && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={handleAddNew}
+                className={`inline-flex min-h-[42px] items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-medium transition duration-200 hover:-translate-y-0.5 ${
+                  uiTheme === 'google'
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : uiTheme === 'night'
+                      ? 'bg-amber-500 text-white hover:bg-amber-400 shadow-[0_8px_24px_rgba(245,158,11,0.22)]'
+                    : 'bg-amber-500 text-white hover:bg-amber-400 shadow-[0_8px_24px_rgba(245,158,11,0.22)]'
+                }`}
+              >
+                <Plus size={14} />
+                {t('common.add')}
+              </motion.button>
+            )}
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {searchFields.length > 0 && (
         <SearchForm
@@ -246,7 +290,7 @@ export default function CrudPage({
                     setSearchParams((prev) => ({ ...prev, [field.name]: event.target.value }))
                   }
                   aria-label={field.label}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                  className="rounded-xl border border-amber-200/20 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-amber-400/50"
                 >
                   <option value="">{t('common.all')}</option>
                   {field.options?.map((option) => (
@@ -262,7 +306,7 @@ export default function CrudPage({
                     setSearchParams((prev) => ({ ...prev, [field.name]: event.target.value }))
                   }
                   aria-label={field.label}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                  className="rounded-xl border border-amber-200/20 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-amber-400/50"
                   placeholder={t('common.pleaseEnterField', { field: field.label })}
                 />
               )}
@@ -272,15 +316,25 @@ export default function CrudPage({
       )}
 
       {selectedRowKeys.length > 0 && (
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-indigo-50 px-4 py-2.5 text-sm">
-          <span className="text-indigo-700">
+        <div className={`flex items-center gap-3 rounded-[20px] px-4 py-3 text-sm backdrop-blur ${
+          uiTheme === 'google'
+            ? 'border border-blue-200 bg-blue-50/90'
+            : uiTheme === 'night'
+              ? 'border border-white/10 bg-white/5'
+            : 'border border-amber-200/28 bg-amber-50/85'
+        }`}>
+          <span className={uiTheme === 'google' ? 'text-blue-700' : uiTheme === 'night' ? 'text-slate-100' : 'text-amber-700'}>
             {t('common.selectedCount', { count: selectedRowKeys.length })}
           </span>
           <div className="flex items-center gap-2">
             {api.remove && (
               <button
                 onClick={handleBatchDelete}
-                className="rounded px-3 py-1 text-xs text-red-600 hover:bg-red-100"
+                className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                  uiTheme === 'night'
+                    ? 'border-red-300/18 bg-red-500/10 text-red-200 hover:bg-red-500/15'
+                    : 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
+                }`}
               >
                 {t('common.batchDelete')}
               </button>
@@ -289,7 +343,11 @@ export default function CrudPage({
           </div>
           <button
             onClick={() => setSelectedRowKeys([])}
-            className="ml-auto rounded px-3 py-1 text-xs text-slate-500 hover:bg-indigo-100"
+            className={`ml-auto rounded-full border px-3 py-1.5 text-xs transition ${
+              uiTheme === 'night'
+                ? 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/8'
+                : 'border-amber-200/22 bg-white text-slate-600 hover:bg-amber-50'
+            }`}
           >
             {t('common.deselectAll')}
           </button>
@@ -301,6 +359,7 @@ export default function CrudPage({
         data={data}
         loading={loading}
         rowKey={rowKey}
+        emptyAction={emptyState}
         rowSelection={{
           selectedRowKeys,
           onChange: setSelectedRowKeys,

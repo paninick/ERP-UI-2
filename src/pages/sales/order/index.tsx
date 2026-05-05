@@ -44,6 +44,8 @@ export default function SalesOrderPage() {
   const initialSearchParams = useMemo(
     () => ({
       salesNo: urlSearchParams.get('salesNo') || '',
+      styleCode: urlSearchParams.get('styleCode') || '',
+      bulkOrderNo: urlSearchParams.get('bulkOrderNo') || '',
       customerName: urlSearchParams.get('customerName') || '',
       orderStatus: urlSearchParams.get('orderStatus') || '',
     }),
@@ -290,7 +292,7 @@ export default function SalesOrderPage() {
         }}
         className="mb-4 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
       >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.1fr)_220px_auto] xl:items-end">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_220px_auto] xl:items-end">
           <label className="flex flex-col gap-2 text-sm text-slate-600">
             <span>{t('page.sales.columns.salesNo')}</span>
             <input
@@ -299,6 +301,26 @@ export default function SalesOrderPage() {
               onChange={(event) => setSearchParams((prev) => ({ ...prev, salesNo: event.target.value }))}
               className="min-h-[44px] rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-indigo-400"
               placeholder={t('page.sales.placeholders.salesNo')}
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm text-slate-600">
+            <span>{t('page.sales.columns.styleCode')}</span>
+            <input
+              aria-label={t('page.sales.columns.styleCode')}
+              value={searchParams.styleCode}
+              onChange={(event) => setSearchParams((prev) => ({ ...prev, styleCode: event.target.value }))}
+              className="min-h-[44px] rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-indigo-400"
+              placeholder={t('page.sales.placeholders.styleCode')}
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-sm text-slate-600">
+            <span>{t('page.sales.columns.bulkOrderNo')}</span>
+            <input
+              aria-label={t('page.sales.columns.bulkOrderNo')}
+              value={searchParams.bulkOrderNo}
+              onChange={(event) => setSearchParams((prev) => ({ ...prev, bulkOrderNo: event.target.value }))}
+              className="min-h-[44px] rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-indigo-400"
+              placeholder={t('page.sales.form.fields.bulkOrderNo')}
             />
           </label>
           <label className="flex flex-col gap-2 text-sm text-slate-600">
@@ -335,7 +357,7 @@ export default function SalesOrderPage() {
             <button
               type="button"
               onClick={() => {
-                setSearchParams({ salesNo: '', customerName: '', orderStatus: '' });
+                setSearchParams({ salesNo: '', styleCode: '', bulkOrderNo: '', customerName: '', orderStatus: '' });
                 handleReset();
               }}
               className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-slate-200 px-5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"

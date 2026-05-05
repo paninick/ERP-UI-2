@@ -14,6 +14,10 @@ export function detectGanttConflicts() {
   return client.post('/erp/producegantt/detectConflicts');
 }
 
+export function previewPlanConflict(data: any) {
+  return client.post('/erp/producegantt/previewConflict', data);
+}
+
 export function rescheduleGanttPlan(id: number, newStartDate?: string, newDueDate?: string) {
   return client.put(`/erp/producegantt/reschedule/${id}`, null, {
     params: { newStartDate, newDueDate },

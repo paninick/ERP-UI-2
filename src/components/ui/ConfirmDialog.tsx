@@ -83,9 +83,10 @@ export default function ConfirmDialog() {
             onClick={() => _answer(false)}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
             className="relative w-[360px] overflow-hidden rounded-2xl bg-white shadow-2xl"
             role="alertdialog"
             aria-modal="true"

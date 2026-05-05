@@ -323,6 +323,20 @@ export default function ProducePlanOverviewPage() {
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                 计划单 {renderText(plan.planNo)}
               </span>
+              {plan.auditStatus === 'APPROVED' && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `/production/job?producePlanId=${plan.id}&styleCode=${encodeURIComponent(plan.styleCode || '')}&customerName=${encodeURIComponent(plan.customerName || '')}`,
+                    )
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                >
+                  建工单
+                  <ArrowRight size={15} />
+                </button>
+              )}
             </div>
             <h1 className="mt-4 text-2xl font-semibold text-slate-900">生产计划详情</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">

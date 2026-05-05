@@ -1,5 +1,7 @@
 import { ReactNode, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useAppStore } from '@/stores/appStore';
 
 interface Column<T> {
   key: string;
@@ -43,6 +45,7 @@ export default function BaseTable<T extends Record<string, any>>({
   testId,
 }: BaseTableProps<T>) {
   const { t } = useTranslation();
+  const uiTheme = useAppStore((state) => state.uiTheme);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
   const allKeys = data.map((r) => String(r[rowKey] ?? ''));
@@ -87,7 +90,7 @@ export default function BaseTable<T extends Record<string, any>>({
   const Skeleton = () => (
     <>
       {Array.from({ length: 8 }).map((_, ri) => (
-        <tr key={ri} className="animate-pulse border-b border-slate-100">
+        <tr key={ri} className="animate-pulse border-b border-slate-200/70">
           {hasSelection && (
             <td className="px-4 py-3">
               <div className="h-4 w-4 rounded bg-slate-200" />
@@ -107,78 +110,106 @@ export default function BaseTable<T extends Record<string, any>>({
   );
 
   return (
-    <div className="overflow-x-auto rounded-xl bg-white shadow-sm" data-testid={testId}>
-      <table className="w-full text-sm" aria-label={ariaLabel}>
-        <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
-            {hasSelection && (
-              <th className="w-10 px-4 py-3">
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  checked={allChecked}
-                  onChange={handleSelectAll}
-                  title={allChecked ? t('common.deselectAll') : t('common.selectAll')}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-              </th>
-            )}
-            {columns.map((column) => (
-              <th
-                key={column.key}
-                className="px-4 py-3 text-left font-medium text-slate-600"
-                style={column.width ? { width: column.width } : undefined}
-              >
-                {column.title}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
-            <Skeleton />
-          ) : data.length === 0 ? (
-            <tr>
-              <td colSpan={colSpan} className="py-12 text-center">
-                <p className="text-slate-400">{t('common.noData')}</p>
-                {emptyAction && <div className="mt-3">{emptyAction}</div>}
-              </td>
-            </tr>
-          ) : (
-            data.map((record, index) => {
-              const key = String(record[rowKey] ?? index);
-              return (
-                <tr
-                  key={key}
-                  role={onRowClick ? 'button' : undefined}
-                  tabIndex={onRowClick ? 0 : undefined}
-                  className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                  onClick={() => onRowClick?.(record)}
-                  onKeyDown={(e) => onRowClick && handleRowKeyDown(e, record)}
+    <div
+      className={`overflow-hidden rounded-[26px] ${
+        uiTheme === 'google'
+          ? 'border border-slate-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.08)]'
+          : uiTheme === 'night'
+            ? 'border border-white/8 bg-slate-950/78 shadow-[0_28px_90px_rgba(2,8,18,0.32)] backdrop-blur-2xl'
+          : 'jtech-panel border border-amber-200/18 bg-white/86 shadow-[0_28px_90px_rgba(120,80,20,0.08)]'
+      }`}
+      data-testid={testId}
+    >
+      <div className="overflow-x-auto">
+        <table className={`w-full text-sm ${uiTheme === 'night' ? 'text-slate-100' : 'text-slate-700'}`} aria-label={ariaLabel}>
+          <thead>
+            <tr className={`border-b ${
+              uiTheme === 'google' ? 'border-slate-200 bg-slate-50' : uiTheme === 'night' ? 'border-white/8 bg-white/5' : 'border-amber-200/20 bg-amber-50/40'
+            }`}>
+              {hasSelection && (
+                <th className="w-10 px-4 py-3">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={allChecked}
+                    onChange={handleSelectAll}
+                    title={allChecked ? t('common.deselectAll') : t('common.selectAll')}
+                    className={`h-4 w-4 rounded ${
+                      uiTheme === 'google' ? 'border-slate-300 text-blue-500' : uiTheme === 'night' ? 'border-white/18 bg-slate-950/70 text-amber-400' : 'border-amber-200 text-amber-500'
+                    }`}
+                  />
+                </th>
+              )}
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  className={`px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.2em] ${
+                    uiTheme === 'google' ? 'text-slate-500' : uiTheme === 'night' ? 'text-slate-400/70' : 'text-amber-700/60'
+                  }`}
+                  style={column.width ? { width: column.width } : undefined}
                 >
-                  {hasSelection && (
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedKeys.includes(key)}
-                        onChange={() => handleSelectRow(key)}
-                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                    </td>
-                  )}
-                  {columns.map((column) => (
-                    <td key={column.key} className="px-4 py-3 text-slate-700">
-                      {column.render
-                        ? column.render(record[column.key], record, index)
-                        : (record[column.key] ?? '-')}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+                  {column.title}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <Skeleton />
+            ) : data.length === 0 ? (
+              <tr>
+                <td colSpan={colSpan} className="py-12 text-center">
+                  <p className={uiTheme === 'night' ? 'text-slate-400' : 'text-slate-500'}>{t('common.noData')}</p>
+                  {emptyAction && <div className="mt-3">{emptyAction}</div>}
+                </td>
+              </tr>
+            ) : (
+              data.map((record, index) => {
+                const key = String(record[rowKey] ?? index);
+                return (
+                  <motion.tr
+                    key={key}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: Math.min(index * 0.028, 0.32), duration: 0.2, ease: 'easeOut' }}
+                    role={onRowClick ? 'button' : undefined}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    className={`cursor-pointer border-b transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 ${
+                      uiTheme === 'google'
+                        ? 'border-slate-100 hover:bg-slate-50'
+                        : uiTheme === 'night'
+                          ? 'border-white/6 hover:bg-white/6'
+                          : 'border-amber-100/40 hover:bg-amber-50/60'
+                    }`}
+                    onClick={() => onRowClick?.(record)}
+                    onKeyDown={(e) => onRowClick && handleRowKeyDown(e, record)}
+                  >
+                    {hasSelection && (
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedKeys.includes(key)}
+                          onChange={() => handleSelectRow(key)}
+                          className={`h-4 w-4 rounded ${
+                            uiTheme === 'google' ? 'border-slate-300 text-blue-500' : uiTheme === 'night' ? 'border-white/18 bg-slate-950/70 text-amber-400' : 'border-amber-200 text-amber-500'
+                          }`}
+                        />
+                      </td>
+                    )}
+                    {columns.map((column) => (
+                      <td key={column.key} className={`px-4 py-3 align-top ${uiTheme === 'night' ? 'text-slate-100' : 'text-slate-700'}`}>
+                        {column.render
+                          ? column.render(record[column.key], record, index)
+                          : (record[column.key] ?? '-')}
+                      </td>
+                    ))}
+                  </motion.tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

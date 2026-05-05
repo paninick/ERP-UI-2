@@ -397,6 +397,17 @@ export default function SalesOrderDetailPage() {
 
   const mainMaterials = draft.materials.filter((item) => item.category === 'main');
   const auxiliaryMaterials = draft.materials.filter((item) => item.category === 'auxiliary');
+  const linkParams = new URLSearchParams({
+    salesNo: draft.baseInfo.salesNo || '',
+    styleCode: draft.baseInfo.patternNo || draft.baseInfo.productName || '',
+    customerName: draft.baseInfo.customerName || '',
+    bulkOrderNo: draft.baseInfo.bulkOrderNo || '',
+    salesOrderId: id !== 'new' ? String(id) : '',
+    sampleStyleNo: draft.baseInfo.patternNo || draft.baseInfo.productName || '',
+    srcBillType: 'sales_order',
+    srcBillId: id !== 'new' ? String(id) : '',
+    srcBillNo: draft.baseInfo.salesNo || '',
+  }).toString();
 
   return (
     <div className="space-y-6">
@@ -517,9 +528,26 @@ export default function SalesOrderDetailPage() {
           </p>
           <div className="mt-4 grid gap-3">
             {[
-              { to: '/sales/proofing-notice', title: '打样任务', detail: '需要先做样衣或研发验证时，从订单继续下钻。' },
-              { to: '/sales/tech', title: '技术单', detail: '技术科承接正式工艺、尺寸与生产依据。' },
-              { to: '/production/plan', title: '生产计划', detail: '订单冻结后进入产能预排与排期协同。' },
+              {
+                to: `/sales/proofing-notice?${linkParams}`,
+                title: '打样任务',
+                detail: '先看是否需要样衣验证，再把客户要求传下去。',
+              },
+              {
+                to: `/sales/tech?styleCode=${encodeURIComponent(draft.baseInfo.patternNo || draft.baseInfo.productName || '')}&customerName=${encodeURIComponent(draft.baseInfo.customerName || '')}`,
+                title: '技术单',
+                detail: '技术科承接正式工艺、尺寸与生产依据。',
+              },
+              {
+                to: `/material/bom?styleCode=${encodeURIComponent(draft.baseInfo.patternNo || draft.baseInfo.productName || '')}`,
+                title: 'BOM',
+                detail: '直接看材料冻结与替代料依据。',
+              },
+              {
+                to: `/production/plan?${linkParams}`,
+                title: '生产计划',
+                detail: '订单冻结后进入产能预排与排期协同。',
+              },
             ].map((item) => (
               <NavLink
                 key={item.to}

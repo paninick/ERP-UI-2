@@ -20,7 +20,9 @@ export default function ProductionGanttPage() {
   const [error, setError] = useState('');
   const [rawData, setRawData] = useState<any[]>([]);
   const customerName = searchParams.get('customerName') || '';
-  const [search, setSearch] = useState(customerName);
+  const planNo = searchParams.get('planNo') || '';
+  const styleCode = searchParams.get('styleCode') || '';
+  const [search, setSearch] = useState(planNo || styleCode || customerName);
 
   const loadData = () => {
     setLoading(true);
@@ -48,11 +50,15 @@ export default function ProductionGanttPage() {
     loadData();
   }, [customerName, currentCompany.code, currentCompany.factoryId, currentCompany.mode]);
 
+  useEffect(() => {
+    setSearch(planNo || styleCode || customerName);
+  }, [customerName, planNo, styleCode]);
+
   const filtered = useMemo(
     () =>
       search
         ? rawData.filter((task: any) =>
-            `${task.name || task.planNo || ''} ${task.customerName || ''} ${task.routeName || ''} ${task.workCenterName || ''}`
+            `${task.name || task.planNo || ''} ${task.styleCode || ''} ${task.customerName || ''} ${task.routeName || ''} ${task.workCenterName || ''}`
               .toLowerCase()
               .includes(search.toLowerCase()),
           )
@@ -124,6 +130,11 @@ export default function ProductionGanttPage() {
             {customerName ? (
               <div className="mt-4 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-blue-50/95 backdrop-blur">
                 当前客户：{customerName}，当前公司：{getCompanyLabel(currentCompany.code, t)}
+              </div>
+            ) : null}
+            {planNo ? (
+              <div className="mt-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-blue-50/95 backdrop-blur">
+                当前预排定位：计划单 {planNo}{styleCode ? ` · 款号 ${styleCode}` : ''}
               </div>
             ) : null}
             <div className="mt-5 grid gap-3 sm:grid-cols-3">

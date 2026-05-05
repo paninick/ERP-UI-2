@@ -101,6 +101,14 @@ const MaterialReturnPage = lazy(() => import('@/pages/production/material-return
 const CheckPage = lazy(() => import('@/pages/quality/check/index'));
 const DataImportPage = lazy(() => import('@/pages/system/data-import/index'));
 const ReportPage = lazy(() => import('@/pages/report/index'));
+const DemoWmsPage = lazy(() => import('@/pages/demo/wms/index'));
+const DemoComfyUIPage = lazy(() => import('@/pages/demo/comfyui/index'));
+const DemoEcommerceCrawlerPage = lazy(() => import('@/pages/demo/ecommerce-crawler/index'));
+const DemoMaterialCrawlerPage = lazy(() => import('@/pages/demo/material-crawler/index'));
+const DemoMediaCrawlerPage = lazy(() => import('@/pages/demo/media-crawler/index'));
+const Demo1688Page = lazy(() => import('@/pages/demo/1688/index'));
+const DemoRuoyiAppPage = lazy(() => import('@/pages/demo/ruoyi-app/index'));
+const DemoRuoyiAiPage = lazy(() => import('@/pages/demo/ruoyi-ai/index'));
 
 function ProtectedRoute({children}: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -113,7 +121,7 @@ function ProtectedRoute({children}: { children: React.ReactNode }) {
 function PageLoader() {
   return (
     <div className="flex h-64 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
     </div>
   );
 }
@@ -249,6 +257,15 @@ export const router = createBrowserRouter([
       {path: 'quality/check', element: lazyPage(<CheckPage />)},
       {path: 'system/data-import', element: lazyPage(<DataImportPage />)},
       {path: 'report', element: lazyPage(<ReportPage />)},
+
+      {path: 'demo/wms', element: lazyPage(<DemoWmsPage />)},
+      {path: 'demo/comfyui', element: lazyPage(<DemoComfyUIPage />)},
+      {path: 'demo/ecommerce-crawler', element: lazyPage(<DemoEcommerceCrawlerPage />)},
+      {path: 'demo/material-crawler', element: lazyPage(<DemoMaterialCrawlerPage />)},
+      {path: 'demo/media-crawler', element: lazyPage(<DemoMediaCrawlerPage />)},
+      {path: 'demo/1688', element: lazyPage(<Demo1688Page />)},
+      {path: 'demo/ruoyi-app', element: lazyPage(<DemoRuoyiAppPage />)},
+      {path: 'demo/ruoyi-ai', element: lazyPage(<DemoRuoyiAiPage />)},
     ],
   },
 ]);

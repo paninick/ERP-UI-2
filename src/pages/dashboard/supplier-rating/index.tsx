@@ -3,6 +3,9 @@ import BaseTable from '@/components/ui/BaseTable'
 import SearchForm, { SearchField } from '@/components/ui/SearchForm'
 import { toast } from '@/components/ui/Toast'
 import * as insightApi from '@/api/dashboardInsight'
+import { useAppStore } from '@/stores/appStore'
+import { getCompanyLabel } from '@/utils/companyContext'
+import { useTranslation } from 'react-i18next'
 
 function StatusBadge({ status }: { status?: string }) {
   const tone =
@@ -15,9 +18,15 @@ function StatusBadge({ status }: { status?: string }) {
 }
 
 export default function SupplierRatingPage() {
+  const { t } = useTranslation()
+  const currentCompany = useAppStore((state) => state.currentCompany)
+  const companySignature = `${currentCompany.code}:${currentCompany.factoryId ?? 'all'}:${currentCompany.mode}`
   const [windowMonths, setWindowMonths] = useState('12')
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+
+  const companyLabel = getCompanyLabel(currentCompany.code, t)
+  const isFactoryMode = currentCompany.mode === 'factory'
 
   const fetchData = useCallback(async (months?: number) => {
     setLoading(true)
@@ -34,7 +43,7 @@ export default function SupplierRatingPage() {
 
   useEffect(() => {
     fetchData(12)
-  }, [fetchData])
+  }, [fetchData, companySignature])
 
   const columns = [
     { key: 'supplierName', title: '供应商' },
@@ -98,6 +107,24 @@ export default function SupplierRatingPage() {
           评级拆成质量、交期、价格三段，不允许用默认分冒充真实评级；来源缺失时直接暴露缺口。
         </p>
         <p className="mt-1 text-xs text-slate-400">当前默认权重：质量 50% / 交期 30% / 价格 20%。</p>
+        <p className="mt-1 text-xs text-slate-400">
+          {t('companyContext.currentLabel', { defaultValue: '当前公司' })}：{companyLabel}
+        </p>
+      </div>
+
+      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 md:grid-cols-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Company</div>
+          <div className="mt-1 font-medium text-slate-800">{companyLabel}</div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Mode</div>
+          <div className="mt-1 font-medium text-slate-800">{isFactoryMode ? 'factory' : 'summary'}</div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Factory</div>
+          <div className="mt-1 font-medium text-slate-800">{currentCompany.factoryId ?? 'HEADQUARTERS'}</div>
+        </div>
       </div>
 
       <SearchForm
@@ -116,7 +143,27 @@ export default function SupplierRatingPage() {
         </SearchField>
       </SearchForm>
 
-      <BaseTable columns={columns} data={rows} loading={loading} />
+      <BaseTable
+        columns={columns}
+        data={rows}
+        loading={loading}
+        emptyAction={
+          !loading ? (
+            <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-amber-200 bg-amber-50 p-4 text-left text-sm text-amber-900">
+              <div className="font-semibold">当前视角下没有评级结果</div>
+              <div className="mt-2 leading-6">
+                供应商评级需要同时命中公司上下文、时间窗和真实来源单据。若来源不足，会出现空表或 `UNRATED`。
+              </div>
+              <div className="mt-2 leading-6">
+                当前视角：{companyLabel} / {isFactoryMode ? 'factory' : 'summary'} / {currentCompany.factoryId ?? 'HEADQUARTERS'}
+              </div>
+              <div className="mt-2 leading-6">
+                若要查看已验证样本，请切到 `CAMBODIA + factory + 106`，统计月数先用 `12`。
+              </div>
+            </div>
+          ) : null
+        }
+      />
     </div>
   )
 }

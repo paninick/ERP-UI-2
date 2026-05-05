@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CrudPage from '@/components/ui/CrudPage';
 import { confirm } from '@/components/ui/ConfirmDialog';
 import { toast } from '@/components/ui/Toast';
+import BaseModal from '@/components/ui/BaseModal';
+import GenericForm from '@/components/ui/GenericForm';
+import * as employeeApi from '@/api/employee';
 import client from '@/api/client';
 
 const DISPATCH_STATUS_TAGS: Record<string, { label: string; color: string }> = {
@@ -23,14 +26,34 @@ const REVIEW_STATUS_TAGS: Record<string, { label: string; color: string }> = {
 const api = {
   list: (params: any) => client.get('/erp/employee/dispatch/list', { params }),
   get: (id: number) => client.get(`/erp/employee/dispatch/${id}`),
-  add: (data: any) => client.post('/erp/employee/dispatch', data),
-  update: (data: any) => client.put('/erp/employee/dispatch', data),
-  remove: (ids: string) => client.delete(`/erp/employee/dispatch/${ids}`),
 };
 
 export default function EmployeeDispatchPage() {
   const [tableKey, setTableKey] = useState(0);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [bindOpen, setBindOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [activeRecord, setActiveRecord] = useState<any>(null);
+  const [reviewLevel, setReviewLevel] = useState<'team' | 'workshop'>('team');
   const refreshTable = () => setTableKey((prev) => prev + 1);
+
+  useEffect(() => {
+    employeeApi.listEmployee({ pageNum: 1, pageSize: 999, status: '0' })
+      .then((res: any) => setEmployees(res.rows || []))
+      .catch(() => {
+        setEmployees([]);
+        toast.error('员工列表加载失败，暂不能绑定任务卡');
+      });
+  }, []);
+
+  const employeeOptions = useMemo(
+    () => employees.map((item) => ({
+      value: String(item.id),
+      label: `${item.employeeName || item.employeeCode || item.id}${item.team ? ` · ${item.team}` : item.department ? ` · ${item.department}` : ''}`,
+    })),
+    [employees],
+  );
 
   const columns = [
     { key: 'taskCardNo', title: '任务卡号' },
@@ -66,122 +89,239 @@ export default function EmployeeDispatchPage() {
     { name: 'dispatchStatus', label: '派工状态', type: 'select' as const, options: Object.entries(DISPATCH_STATUS_TAGS).map(([value, { label }]) => ({ value, label })) },
   ];
 
-  const handleBind = async (record: any) => {
-    const employeeIdText = window.prompt(`请输入绑定员工ID，任务卡 ${record.taskCardNo}`, record.employeeId ? String(record.employeeId) : '');
-    const employeeId = Number(employeeIdText);
-    if (!Number.isFinite(employeeId) || employeeId <= 0) {
-      toast.error('请输入有效的员工ID');
-      return;
-    }
-    if (!(await confirm(`确认将任务卡 ${record.taskCardNo} 绑定给员工 ${employeeId}？`))) return;
+  const openBind = (record: any) => {
+    setActiveRecord(record);
+    setBindOpen(true);
+  };
+
+  const openComplete = (record: any) => {
+    setActiveRecord(record);
+    setCompleteOpen(true);
+  };
+
+  const openReview = (record: any, level: 'team' | 'workshop') => {
+    setActiveRecord(record);
+    setReviewLevel(level);
+    setReviewOpen(true);
+  };
+
+  const handleBind = async (values: any) => {
+    if (!activeRecord) return;
+    const employeeId = Number(values.employeeId);
+    if (!(await confirm(`确认将任务卡 ${activeRecord.taskCardNo} 绑定给所选员工？`))) return;
     try {
-      await client.put(`/erp/employee/dispatch/bind/${record.taskCardNo}`, employeeId);
+      await client.put(`/erp/employee/dispatch/bind/${activeRecord.taskCardNo}`, employeeId);
       toast.success('绑定成功');
+      setBindOpen(false);
+      setActiveRecord(null);
       refreshTable();
     } catch (error: any) {
       toast.error(error.message || '绑定失败');
+      throw error;
     }
   };
 
-  const handleComplete = async (record: any) => {
-    const actualQtyText = window.prompt(`请输入任务卡 ${record.taskCardNo} 的实际完成数量`, record.planQty ? String(record.planQty) : '');
-    const defectQtyText = window.prompt('请输入次品数量', record.defectQty ? String(record.defectQty) : '0');
-    const actualQty = Number(actualQtyText);
-    const defectQty = Number(defectQtyText);
+  const handleComplete = async (values: any) => {
+    if (!activeRecord) return;
+    const actualQty = Number(values.actualQty);
+    const defectQty = Number(values.defectQty || 0);
     if (!Number.isFinite(actualQty) || actualQty < 0 || !Number.isFinite(defectQty) || defectQty < 0) {
       toast.error('请输入有效的数量');
       return;
     }
-    if (!(await confirm(`确认提交任务卡 ${record.taskCardNo} 的完工结果？`))) return;
+    if (defectQty > actualQty) {
+      toast.error('次品数不能大于实际完成数');
+      return;
+    }
+    if (!(await confirm(`确认提交任务卡 ${activeRecord.taskCardNo} 的完工结果？`))) return;
     try {
-      await client.put(`/erp/employee/dispatch/complete/${record.id}`, { actualQty, defectQty });
+      await client.put(`/erp/employee/dispatch/complete/${activeRecord.id}`, { actualQty, defectQty });
       toast.success('完工提交成功');
+      setCompleteOpen(false);
+      setActiveRecord(null);
       refreshTable();
     } catch (error: any) {
       toast.error(error.message || '提交失败');
+      throw error;
     }
   };
 
-  const handleReview = async (record: any, level: 'team' | 'workshop') => {
-    const reviewStatusDefault = level === 'team' ? 'TEAM_LEADER_REVIEWED' : 'COMPLETED';
-    const reviewStatus = window.prompt(
-      `请输入复核状态：${level === 'team' ? 'TEAM_LEADER_REVIEWED 或 REJECTED' : 'COMPLETED 或 REJECTED'}`,
-      reviewStatusDefault,
-    );
-    if (!reviewStatus) return;
-    const reviewName = window.prompt('请输入复核人姓名', '');
-    if (!(await confirm(`确认提交${level === 'team' ? '组长' : '主任'}复核？`))) return;
+  const handleReview = async (values: any) => {
+    if (!activeRecord) return;
+    const reviewStatus = values.reviewResult === 'REJECTED'
+      ? 'REJECTED'
+      : reviewLevel === 'team' ? 'TEAM_LEADER_REVIEWED' : 'COMPLETED';
+    if (!(await confirm(`确认提交${reviewLevel === 'team' ? '组长' : '主任'}复核？`))) return;
     try {
-      await client.put(`/erp/employee/dispatch/review/${level}/${record.id}`, {
+      await client.put(`/erp/employee/dispatch/review/${reviewLevel}/${activeRecord.id}`, {
         reviewStatus,
-        reviewName,
+        reviewName: values.reviewName || (reviewLevel === 'team' ? '组长复核' : '主任复核'),
+        reviewRemark: values.reviewRemark,
       });
       toast.success('复核成功');
+      setReviewOpen(false);
+      setActiveRecord(null);
       refreshTable();
     } catch (error: any) {
       toast.error(error.message || '复核失败');
+      throw error;
     }
   };
 
   return (
-    <CrudPage
-      key={tableKey}
-      title="员工派工单"
-      api={api}
-      columns={columns}
-      searchFields={searchFields}
-      extraActions={(record: any) => (
-        <>
-          {record.dispatchStatus === 'DISPATCHED' && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleBind(record);
-              }}
-              className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
-            >
-              绑定
-            </button>
-          )}
-          {record.dispatchStatus === 'IN_PROGRESS' && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleComplete(record);
-              }}
-              className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600"
-            >
-              完工
-            </button>
-          )}
-          {record.dispatchStatus === 'WAIT_REVIEW' && record.reviewStatus === 'WAIT_REVIEW' && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleReview(record, 'team');
-              }}
-              className="inline-flex items-center gap-1 rounded-md bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700"
-            >
-              组长复核
-            </button>
-          )}
-          {record.reviewStatus === 'TEAM_LEADER_REVIEWED' && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleReview(record, 'workshop');
-              }}
-              className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
-            >
-              主任复核
-            </button>
-          )}
-        </>
-      )}
-    />
+    <>
+      <CrudPage
+        key={tableKey}
+        title="员工派工单"
+        api={api}
+        columns={columns}
+        searchFields={searchFields}
+        extraActions={(record: any) => (
+          <>
+            {record.dispatchStatus === 'DISPATCHED' && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openBind(record);
+                }}
+                className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+              >
+                扫码/选择绑定
+              </button>
+            )}
+            {record.dispatchStatus === 'IN_PROGRESS' && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openComplete(record);
+                }}
+                className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600"
+              >
+                完工报数
+              </button>
+            )}
+            {record.dispatchStatus === 'WAIT_REVIEW' && record.reviewStatus === 'WAIT_REVIEW' && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openReview(record, 'team');
+                }}
+                className="inline-flex items-center gap-1 rounded-md bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700"
+              >
+                组长复核
+              </button>
+            )}
+            {record.reviewStatus === 'TEAM_LEADER_REVIEWED' && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openReview(record, 'workshop');
+                }}
+                className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+              >
+                主任复核
+              </button>
+            )}
+          </>
+        )}
+      />
+
+      <BaseModal
+        open={bindOpen}
+        title={activeRecord ? `任务卡绑定 · ${activeRecord.taskCardNo || '-'}` : '任务卡绑定'}
+        onClose={() => {
+          setBindOpen(false);
+          setActiveRecord(null);
+        }}
+        width="640px"
+      >
+        <GenericForm
+          initialValues={{ employeeId: activeRecord?.employeeId ? String(activeRecord.employeeId) : '' }}
+          fields={[
+            {
+              name: 'employeeId',
+              label: '绑定员工',
+              type: 'select',
+              required: true,
+              options: employeeOptions,
+              group: '任务卡扫码/选择',
+            },
+          ]}
+          onSubmit={handleBind}
+          onCancel={() => {
+            setBindOpen(false);
+            setActiveRecord(null);
+          }}
+        />
+      </BaseModal>
+
+      <BaseModal
+        open={completeOpen}
+        title={activeRecord ? `完工报数 · ${activeRecord.taskCardNo || '-'}` : '完工报数'}
+        onClose={() => {
+          setCompleteOpen(false);
+          setActiveRecord(null);
+        }}
+        width="640px"
+      >
+        <GenericForm
+          initialValues={{
+            actualQty: activeRecord?.planQty ?? '',
+            defectQty: activeRecord?.defectQty ?? 0,
+          }}
+          fields={[
+            { name: 'actualQty', label: '实际完成', type: 'number', required: true, group: '完工数量' },
+            { name: 'defectQty', label: '次品数量', type: 'number', group: '完工数量' },
+          ]}
+          onSubmit={handleComplete}
+          onCancel={() => {
+            setCompleteOpen(false);
+            setActiveRecord(null);
+          }}
+        />
+      </BaseModal>
+
+      <BaseModal
+        open={reviewOpen}
+        title={`${reviewLevel === 'team' ? '组长' : '主任'}复核 · ${activeRecord?.taskCardNo || '-'}`}
+        onClose={() => {
+          setReviewOpen(false);
+          setActiveRecord(null);
+        }}
+        width="640px"
+      >
+        <GenericForm
+          initialValues={{
+            reviewResult: 'PASS',
+            reviewName: '',
+            reviewRemark: '',
+          }}
+          fields={[
+            {
+              name: 'reviewResult',
+              label: '复核结果',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'PASS', label: '通过' },
+                { value: 'REJECTED', label: '驳回返工' },
+              ],
+              group: '复核结论',
+            },
+            { name: 'reviewName', label: '复核人', group: '复核结论' },
+            { name: 'reviewRemark', label: '复核备注', type: 'textarea', group: '复核结论' },
+          ]}
+          onSubmit={handleReview}
+          onCancel={() => {
+            setReviewOpen(false);
+            setActiveRecord(null);
+          }}
+        />
+      </BaseModal>
+    </>
   );
 }

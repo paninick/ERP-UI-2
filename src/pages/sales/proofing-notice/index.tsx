@@ -89,6 +89,12 @@ export default function ProofingNoticePage() {
     }
   };
 
+  const openCreateModal = () => {
+    setEditingRecord(null);
+    setEditingAttachments([]);
+    setModalOpen(true);
+  };
+
   const handleDelete = async (record: any) => {
     if (!(await confirm(t('page.proofingNotice.confirmDelete', { name: record.sampleNo || record.styleCode || '-' })))) {
       return;
@@ -123,19 +129,28 @@ export default function ProofingNoticePage() {
 
   const handleModalSubmit = async (values: any) => {
     try {
-      if (!editingRecord?.id) {
-        toast.error(t('page.proofingNotice.createOnlyFromSales'));
-        return;
-      }
       const { attachments = [], ...noticeValues } = values;
-      await api.updateNotice({
-        ...editingRecord,
-        ...noticeValues,
-        id: editingRecord.id,
-        version: noticeValues.version ?? editingRecord.version,
-      });
-      await syncNoticeFiles(editingRecord.id, attachments, editingAttachments);
-      toast.success(t('common.updateSuccess'));
+      let savedNotice = editingRecord;
+      if (editingRecord?.id) {
+        await api.updateNotice({
+          ...editingRecord,
+          ...noticeValues,
+          id: editingRecord.id,
+          version: noticeValues.version ?? editingRecord.version,
+        });
+        await syncNoticeFiles(editingRecord.id, attachments, editingAttachments);
+        toast.success(t('common.updateSuccess'));
+      } else {
+        const res: any = await api.addNotice(noticeValues);
+        savedNotice = res?.data || res;
+        const noticeId = savedNotice?.id;
+        if (!noticeId) {
+          toast.error('打样通知创建失败');
+          return;
+        }
+        await syncNoticeFiles(noticeId, attachments, []);
+        toast.success('打样通知已创建');
+      }
       setModalOpen(false);
       setEditingRecord(null);
       setEditingAttachments([]);
@@ -242,27 +257,28 @@ export default function ProofingNoticePage() {
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
           <div>
-            <div className="inline-flex rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-fuchsia-700">研发 / 样衣任务</div>
+            <div className="inline-flex rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold tracking-[0.2em] text-fuchsia-700">打样源头 / 样衣任务</div>
             <div className="mt-3 flex items-center justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-semibold text-slate-900">{t('page.proofingNotice.title')}</h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-                  打样通知是“要不要先做样、样该怎么做、谁来跟”的任务单，不是正式大货销售订单。它更像销售或开发发给技术/样衣的工作指令，用来驱动一次、二次、三次样或摄影样等研发动作。
+                  打样通知是“先做样、样怎么做、谁来跟”的任务单，不是正式大货销售订单。它是技术与样衣的源头入口，用来驱动一次、二次、三次样或摄影样等研发动作。
                 </p>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                  从客户维度看，这里适合追某个客户当前有哪些开发任务、哪些样在返工、哪些客户窗口还在反复确认。客户主档、联系人和偏好库都应该能顺着走到这里。
+                  从客户维度看，这里适合追某个客户当前有哪些开发任务、哪些样在返工、哪些客户窗口还在反复确认。客户主档、联系人和偏好库都应该能顺着走到这里，但不是先卡到销售订单。
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <div className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
-                  {t('page.proofingNotice.salesOwnedHint')}
+                  打样可以直接创建，销售仅作为来源之一
                 </div>
-                <NavLink
-                  to="/sales/order"
+                <button
+                  type="button"
+                  onClick={openCreateModal}
                   className="flex min-h-[44px] items-center rounded-lg bg-fuchsia-600 px-4 py-3 text-sm text-white hover:bg-fuchsia-700"
                 >
-                  {t('page.proofingNotice.goSalesToCreate')}
-                </NavLink>
+                  新建打样通知
+                </button>
               </div>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -283,8 +299,8 @@ export default function ProofingNoticePage() {
           </div>
           <div className="grid gap-3">
             {[
-              { to: '/sales/order', title: '先看销售订单', detail: '先确认这是打样需求还是正式大货需求。' },
               { to: '/sales/tech', title: '继续看技术单', detail: '打样通知下游应沉淀为技术要求、BOM 和进度状态。' },
+              { to: '/sales/order', title: '仅作来源回看', detail: '销售单只是来源之一，不应挡住打样录入。' },
             ].map((item) => (
               <NavLink key={item.to} to={item.to} className="group rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-fuchsia-300 hover:bg-fuchsia-50/50">
                 <p className="text-sm font-semibold text-slate-900">{item.title}</p>
@@ -362,7 +378,7 @@ export default function ProofingNoticePage() {
 
       <BaseModal
         open={modalOpen}
-        title={t('page.proofingNotice.editTitle')}
+        title={editingRecord?.id ? t('page.proofingNotice.editTitle') : '新建打样通知'}
         onClose={() => {
           setModalOpen(false);
           setEditingRecord(null);

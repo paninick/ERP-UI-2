@@ -1,7 +1,8 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ImagePlus, LoaderCircle, Paperclip, Trash2, UploadCloud } from 'lucide-react';
 import * as api from '@/api/notice';
+import * as salesApi from '@/api/sales';
 import { toast } from '@/components/ui/Toast';
 
 type NoticeAttachment = {
@@ -112,6 +113,46 @@ export default function ProofingNoticeForm({
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [attachments, setAttachments] = useState<NoticeAttachment[]>([]);
   const [colorImageFiles, setColorImageFiles] = useState<NoticeAttachment[]>([]);
+
+  // P5: 来源校验 — 新建时必须选择来源销售订单或标记为独立开发单
+  const isNew = !initialValues?.id;
+  const [sourceType, setSourceType] = useState<'sales_order' | 'independent' | ''>('');
+  const [salesOrders, setSalesOrders] = useState<any[]>([]);
+  const [salesOrdersLoading, setSalesOrdersLoading] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState('');
+  const [independentReason, setIndependentReason] = useState('');
+
+  const loadSalesOrders = useCallback(async () => {
+    setSalesOrdersLoading(true);
+    try {
+      const res: any = await salesApi.listSalesOrder({ pageNum: 1, pageSize: 200 });
+      setSalesOrders(res.rows || []);
+    } catch {
+      setSalesOrders([]);
+    } finally {
+      setSalesOrdersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isNew && sourceType === 'sales_order') {
+      loadSalesOrders();
+    }
+  }, [isNew, sourceType, loadSalesOrders]);
+
+  const handleSelectOrder = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    const order = salesOrders.find((o) => String(o.id) === orderId);
+    if (order) {
+      setForm((prev) => ({
+        ...prev,
+        styleCode: order.styleCode || prev.styleCode,
+        bulkOrderNo: order.bulkOrderNo || order.styleCode || prev.bulkOrderNo,
+        customerName: order.customerName || prev.customerName,
+        salesName: order.salesName || prev.salesName,
+      }));
+    }
+  };
 
   useEffect(() => {
     if (initialValues) {
@@ -385,18 +426,78 @@ export default function ProofingNoticeForm({
         <p className="mt-2 text-sm leading-6 text-slate-600">{t('page.proofingNotice.form.quickHint')}</p>
       </div>
 
+      {/* P5: 来源校验区 — 仅新建时显示 */}
+      {isNew && (
+        <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900">来源选择（必填）</h4>
+            <p className="mt-1 text-xs text-slate-500">打样通知必须来自销售订单，或明确标记为独立开发单。</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setSourceType('sales_order')}
+              className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${sourceType === 'sales_order' ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            >
+              来自销售订单
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSourceType('independent'); setSelectedOrderId(''); }}
+              className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${sourceType === 'independent' ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            >
+              独立开发单
+            </button>
+          </div>
+          {sourceType === 'sales_order' && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-600">选择销售订单（自动带入款号/客户）</label>
+              {salesOrdersLoading ? (
+                <div className="text-xs text-slate-400">加载中...</div>
+              ) : (
+                <select
+                  aria-label="选择销售订单"
+                  value={selectedOrderId}
+                  onChange={(e) => handleSelectOrder(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-fuchsia-400"
+                >
+                  <option value="">-- 请选择销售订单 --</option>
+                  {salesOrders.map((order) => (
+                    <option key={order.id} value={String(order.id)}>
+                      {order.salesNo || '-'} | {order.styleCode || '-'} | {order.customerName || '-'}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+          {sourceType === 'independent' && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-600">独立开发原因（必填）</label>
+              <input
+                type="text"
+                value={independentReason}
+                onChange={(e) => setIndependentReason(e.target.value)}
+                placeholder="如：客户主动开发、展会样品、内部研发..."
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-400"
+              />
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="space-y-3">
         <div>
           <h4 className="text-sm font-semibold text-slate-900">{t('page.proofingNotice.form.sections.sampleTask')}</h4>
           <p className="mt-1 text-xs text-slate-500">{t('page.proofingNotice.form.sectionHints.sampleTask')}</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label={t('page.proofingNotice.form.fields.sampleNo')} name="sampleNo" />
-          <Field label={t('page.proofingNotice.form.fields.roundNumber')} name="roundNumber" type="number" />
           <Field label={t('page.proofingNotice.form.fields.customerName')} name="customerName" />
+          <Field label={t('page.proofingNotice.form.fields.styleCode')} name="styleCode" />
           <Field label={t('page.proofingNotice.form.fields.salesName')} name="salesName" />
           <Field label={t('page.proofingNotice.form.fields.bulkOrderNo')} name="bulkOrderNo" />
-          <Field label={t('page.proofingNotice.form.fields.styleCode')} name="styleCode" />
+          <Field label={t('page.proofingNotice.form.fields.sampleNo')} name="sampleNo" />
+          <Field label={t('page.proofingNotice.form.fields.roundNumber')} name="roundNumber" type="number" />
           <Field label={t('page.proofingNotice.form.fields.styleCategory')} name="styleCategory" />
           <Field label={t('page.proofingNotice.form.fields.styleSubCategory')} name="styleSubCategory" />
           <Field label={t('page.proofingNotice.form.fields.styleType')} name="styleType" />
@@ -439,7 +540,7 @@ export default function ProofingNoticeForm({
       <section className="space-y-3">
         <div>
           <h4 className="text-sm font-semibold text-slate-900">{t('page.proofingNotice.form.sections.flowControl')}</h4>
-          <p className="mt-1 text-xs text-slate-500">{t('page.proofingNotice.form.sectionHints.flowControl')}</p>
+          <p className="mt-1 text-xs text-slate-500">先明确这是第几轮打样、交期有多紧、客户和工厂是否已经确认，避免技术和样衣拿到的是半成品任务。</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <SelectField
@@ -507,7 +608,7 @@ export default function ProofingNoticeForm({
       <section className="space-y-3">
         <div>
           <h4 className="text-sm font-semibold text-slate-900">{t('page.proofingNotice.form.sections.confirmAssets')}</h4>
-          <p className="mt-1 text-xs text-slate-500">{t('page.proofingNotice.form.sectionHints.confirmAssets')}</p>
+          <p className="mt-1 text-xs text-slate-500">把样图、颜色确认图和往来附件一次挂全，避免打样执行阶段反复追图追资料。</p>
         </div>
         <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
           <div className="space-y-3">
@@ -559,7 +660,7 @@ export default function ProofingNoticeForm({
       <section className="space-y-3">
         <div>
           <h4 className="text-sm font-semibold text-slate-900">{t('page.proofingNotice.form.sections.feedback')}</h4>
-          <p className="mt-1 text-xs text-slate-500">{t('page.proofingNotice.form.sectionHints.feedback')}</p>
+          <p className="mt-1 text-xs text-slate-500">这里记录客户窗口反馈、内部备注和返修提示，后续总览和历史页都会继续承接这些上下文。</p>
         </div>
         <div className="grid gap-4">
           <label className="space-y-2">

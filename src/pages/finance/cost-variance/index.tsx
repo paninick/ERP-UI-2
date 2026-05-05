@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from '@/components/ui/Toast'
 import { confirm } from '@/components/ui/ConfirmDialog'
+import BaseModal from '@/components/ui/BaseModal'
 import BaseTable from '@/components/ui/BaseTable'
 import Pagination from '@/components/ui/Pagination'
 import SearchForm, { SearchField } from '@/components/ui/SearchForm'
@@ -11,6 +12,16 @@ export default function CostVariancePage() {
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 })
   const [queryParams, setQueryParams] = useState({ planNo: '', styleCode: '', period: '', freezeStatus: '' })
+
+  // 冻结 Modal
+  const [freezeTarget, setFreezeTarget] = useState<any>(null)
+  const [freezeReason, setFreezeReason] = useState('月结确认')
+  const [freezing, setFreezing] = useState(false)
+
+  // 计算偏差 Modal
+  const [calcOpen, setCalcOpen] = useState(false)
+  const [calcForm, setCalcForm] = useState({ planId: '', period: '' })
+  const [calculating, setCalculating] = useState(false)
 
   const fetchData = useCallback(
     async (params?: Record<string, any>) => {
@@ -48,34 +59,44 @@ export default function CostVariancePage() {
     fetchData({ pageNum: 1, ...next })
   }
 
-  const handleFreeze = async (record: any) => {
-    const reason = window.prompt('请输入冻结原因', '月结确认') || '月结确认'
-    if (!(await confirm(`确认冻结 ${record.planNo || record.id}？`))) return
+  const openFreezeModal = (record: any) => {
+    setFreezeTarget(record)
+    setFreezeReason('月结确认')
+  }
+
+  const handleFreezeSubmit = async () => {
+    if (!freezeTarget) return
+    if (!(await confirm(`确认冻结 ${freezeTarget.planNo || freezeTarget.id}？`))) return
+    setFreezing(true)
     try {
-      await api.freezeCostVariance(record.id, reason)
+      await api.freezeCostVariance(freezeTarget.id, freezeReason)
       toast.success('冻结成功')
+      setFreezeTarget(null)
       fetchData()
     } catch (error: any) {
       toast.error(error.message || '冻结失败')
+    } finally {
+      setFreezing(false)
     }
   }
 
-  const handleCalculate = async () => {
-    const planIdText = window.prompt('请输入生产计划ID')
-    if (!planIdText) return
-    const planId = Number(planIdText)
+  const handleCalculateSubmit = async () => {
+    const planId = Number(calcForm.planId)
     if (!Number.isFinite(planId) || planId <= 0) {
       toast.error('请输入有效的生产计划ID')
       return
     }
-    const period = window.prompt('请输入期间（可为空，默认当前月）', queryParams.period || '') || undefined
     if (!(await confirm(`确认计算生产计划 ${planId} 的成本偏差？`))) return
+    setCalculating(true)
     try {
-      await api.calculateCostVariance(planId, period)
+      await api.calculateCostVariance(planId, calcForm.period || undefined)
       toast.success('计算成功')
-      fetchData({ pageNum: 1, period: period || '' })
+      setCalcOpen(false)
+      fetchData({ pageNum: 1, period: calcForm.period || '' })
     } catch (error: any) {
       toast.error(error.message || '计算失败')
+    } finally {
+      setCalculating(false)
     }
   }
 
@@ -101,7 +122,7 @@ export default function CostVariancePage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                handleFreeze(record)
+                openFreezeModal(record)
               }}
               className="rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100"
             >
@@ -119,7 +140,10 @@ export default function CostVariancePage() {
         <h1 className="text-xl font-semibold">工单成本偏差</h1>
         <button
           type="button"
-          onClick={handleCalculate}
+          onClick={() => {
+            setCalcForm({ planId: '', period: queryParams.period || '' })
+            setCalcOpen(true)
+          }}
           className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
         >
           计算偏差
@@ -143,6 +167,7 @@ export default function CostVariancePage() {
         <SearchField label="期间">
           <input
             className="rounded border border-slate-200 px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none"
+            placeholder="如 2026-05"
             value={queryParams.period}
             onChange={(e) => setQueryParams((p) => ({ ...p, period: e.target.value }))}
           />
@@ -169,6 +194,68 @@ export default function CostVariancePage() {
           fetchData({ pageNum: page, pageSize })
         }}
       />
+
+      {/* 冻结 Modal — 替代 window.prompt */}
+      <BaseModal
+        open={!!freezeTarget}
+        title={`冻结成本偏差：${freezeTarget?.planNo || ''}`}
+        onClose={() => setFreezeTarget(null)}
+      >
+        <div className="space-y-4 p-1">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700">冻结原因</label>
+            <textarea
+              value={freezeReason}
+              onChange={(e) => setFreezeReason(e.target.value)}
+              rows={3}
+              className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setFreezeTarget(null)} className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">取消</button>
+            <button type="button" disabled={freezing} onClick={handleFreezeSubmit} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50">
+              {freezing ? '冻结中…' : '确认冻结'}
+            </button>
+          </div>
+        </div>
+      </BaseModal>
+
+      {/* 计算偏差 Modal — 替代 window.prompt */}
+      <BaseModal
+        open={calcOpen}
+        title="计算成本偏差"
+        onClose={() => setCalcOpen(false)}
+      >
+        <div className="space-y-4 p-1">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700">生产计划ID <span className="text-red-500">*</span></label>
+            <input
+              type="number"
+              min="1"
+              value={calcForm.planId}
+              onChange={(e) => setCalcForm((prev) => ({ ...prev, planId: e.target.value }))}
+              placeholder="请输入生产计划ID"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700">期间（可选）</label>
+            <input
+              type="text"
+              value={calcForm.period}
+              onChange={(e) => setCalcForm((prev) => ({ ...prev, period: e.target.value }))}
+              placeholder="如 2026-05，留空则默认当前月"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setCalcOpen(false)} className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">取消</button>
+            <button type="button" disabled={calculating || !calcForm.planId} onClick={handleCalculateSubmit} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50">
+              {calculating ? '计算中…' : '确认计算'}
+            </button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   )
 }

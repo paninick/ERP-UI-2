@@ -288,6 +288,9 @@ export default function ProofingNoticeOverviewPage() {
               这里承接的是一张打样通知的统一查看视图，把通知头、款式图片、附件、主辅料、样衣要求、历史记录和当前流程集中起来看，
               让业务、技术和主管不需要在多个列表里来回找上下文。
             </p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              这里表达的是打样源头任务本身，而不是正式销售订单的附属页。后续是否转技术、冻结样衣 BOM、承接正式大货，都从这张打样通知继续往下走。
+            </p>
             <p className="mt-2 text-sm text-slate-500">当前公司：{getCompanyLabel(currentCompany.code, t)}</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-4">
               <OverviewMetric icon={Beaker} label="当前阶段" value={renderText(notice.sampleType)} />
@@ -350,7 +353,7 @@ export default function ProofingNoticeOverviewPage() {
         <div className="space-y-4">
           <SectionCard
             title="打样通知信息"
-            hint="先看来源任务头信息，确认客户、款号、打样类型、交期和当前备注。"
+            hint="先看源头任务头信息，确认客户、款号、打样类型、交期和当前备注。"
           >
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <GridField label="客户名称" value={renderText(notice.customerName)} />
@@ -458,7 +461,7 @@ export default function ProofingNoticeOverviewPage() {
 
           <SectionCard
             title="样衣信息"
-            hint="按颜色 / 尺码 / 数量看这次打样具体要做哪些样，方便业务和技术对同一批样理解一致。"
+            hint="按颜色 / 尺码 / 数量看这次打样具体要做哪些样，方便业务、技术和样衣室对同一批样理解一致。"
           >
             {detailLines.length ? (
               <div className="overflow-x-auto rounded-2xl border border-slate-200">

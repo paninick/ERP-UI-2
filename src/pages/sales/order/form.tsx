@@ -33,6 +33,10 @@ type SalesOrderFormState = {
   tradeTerms: string;
   colorConfirmed: string;
   colorConfirmDate: string;
+  mainColor: string;
+  pantoneNo: string;
+  sizeRange: string;
+  sampleRequired: string;
   remark: string;
 };
 
@@ -58,8 +62,21 @@ const EMPTY_FORM: SalesOrderFormState = {
   tradeTerms: '',
   colorConfirmed: '',
   colorConfirmDate: '',
+  mainColor: '',
+  pantoneNo: '',
+  sizeRange: '',
+  sampleRequired: '',
   remark: '',
 };
+
+function normalizeSalesType(value: any) {
+  const next = String(value || '').trim().toUpperCase();
+  if (!next) return '';
+  if (next === 'SAMPLE' || next === '1' || next === 'S') return '1';
+  if (next === 'BULK' || next === '2' || next === 'B') return '2';
+  if (next === 'DEVELOP' || next === '3' || next === 'D') return '3';
+  return String(value || '');
+}
 
 function normalizeDate(value: any) {
   if (!value) return '';
@@ -89,7 +106,7 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
         dueDate: normalizeDate(initialValues.dueDate),
         quantity: initialValues.quantity != null ? String(initialValues.quantity) : '',
         amount: initialValues.amount != null ? String(initialValues.amount) : '',
-        salesType: initialValues.salesType || '',
+        salesType: normalizeSalesType(initialValues.salesType),
         orderStatus: initialValues.orderStatus || '',
         bulkOpinion: initialValues.bulkOpinion || '',
         productionExceed: initialValues.productionExceed || '',
@@ -98,6 +115,10 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
         tradeTerms: initialValues.tradeTerms || '',
         colorConfirmed: initialValues.colorConfirmed || '',
         colorConfirmDate: normalizeDate(initialValues.colorConfirmDate),
+        mainColor: initialValues.mainColor || '',
+        pantoneNo: initialValues.pantoneNo || '',
+        sizeRange: initialValues.sizeRange || '',
+        sampleRequired: initialValues.sampleRequired || '',
         remark: initialValues.remark || '',
       });
       return;
@@ -116,10 +137,21 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const nextBulkOrderNo = form.bulkOrderNo.trim() || form.styleCode.trim();
+    if (!form.customerName.trim()) {
+      setLoading(false);
+      throw new Error('客户名称不能为空');
+    }
+    if (!nextBulkOrderNo) {
+      setLoading(false);
+      throw new Error('大货款号不能为空');
+    }
     setLoading(true);
     try {
       await onSubmit({
         ...form,
+        bulkOrderNo: nextBulkOrderNo,
+        salesType: normalizeSalesType(form.salesType),
         quantity: form.quantity ? Number(form.quantity) : undefined,
         amount: form.amount ? Number(form.amount) : undefined,
         colorConfirmDate: form.colorConfirmDate || undefined,
@@ -254,6 +286,7 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
           <Field
             label={t('page.sales.form.fields.bulkOrderNo')}
             name="bulkOrderNo"
+            placeholder={t('page.sales.placeholders.styleCode')}
           />
           <Field
             label={t('page.sales.form.fields.salesName')}
@@ -285,9 +318,9 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
             label={t('page.sales.form.fields.salesType')}
             name="salesType"
             options={[
-              { value: 'SAMPLE', label: t('page.sales.form.options.salesType.sample') },
-              { value: 'BULK', label: t('page.sales.form.options.salesType.bulk') },
-              { value: 'DEVELOP', label: t('page.sales.form.options.salesType.develop') },
+              { value: '1', label: t('page.sales.form.options.salesType.sample') },
+              { value: '2', label: t('page.sales.form.options.salesType.bulk') },
+              { value: '3', label: t('page.sales.form.options.salesType.develop') },
             ]}
           />
         </div>
@@ -322,6 +355,17 @@ export default function SalesOrderForm({ initialValues, onSubmit, onCancel }: Sa
             options={[
               { value: 'Y', label: t('page.sales.form.options.boolean.yes') },
               { value: 'N', label: t('page.sales.form.options.boolean.no') },
+            ]}
+          />
+          <Field label="主色" name="mainColor" placeholder="如：米白、藏青" />
+          <Field label="潘通色号" name="pantoneNo" placeholder="如：Pantone 11-0601 TCX" />
+          <Field label="尺码范围" name="sizeRange" placeholder="如：XS/S/M/L/XL" />
+          <SelectField
+            label="打样需求"
+            name="sampleRequired"
+            options={[
+              { value: 'Y', label: '需要打样' },
+              { value: 'N', label: '不需要打样' },
             ]}
           />
         </div>
